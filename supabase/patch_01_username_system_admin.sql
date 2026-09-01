@@ -5,7 +5,7 @@
 -- Idempotente: se puede volver a ejecutar sin romper nada.
 --
 -- REQUISITO: Authentication -> Providers -> Email -> "Confirm email" = OFF
--- (los correos son sintéticos: usuario@alabanza.local y no reciben mensajes).
+-- (los correos son sintéticos: usuario@alabanza-manager.com y no reciben mensajes).
 -- =============================================================================
 
 -- 1. profiles: usuario visible + marca de admin del sistema ----------------------
@@ -118,14 +118,14 @@ where id = (select id from auth.users order by created_at asc limit 1);
 -- 8. (OPCIONAL) Convierte al admin creado con correo real al esquema de usuario
 --    para que entre solo con "admin". Descomenta y ajusta el correo si lo quieres.
 -- update auth.users
---   set email = 'admin@alabanza.local',
+--   set email = 'admin@alabanza-manager.com',
 --       raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || '{"username":"admin"}'::jsonb
 --   where email = 'admin@local.test';
 -- update auth.identities
---   set identity_data = identity_data || '{"email":"admin@alabanza.local"}'::jsonb
+--   set identity_data = identity_data || '{"email":"admin@alabanza-manager.com"}'::jsonb
 --   where provider = 'email' and identity_data ->> 'email' = 'admin@local.test';
 -- update public.profiles
---   set username = 'admin', email = 'admin@alabanza.local'
+--   set username = 'admin', email = 'admin@alabanza-manager.com'
 --   where email = 'admin@local.test';
 
 -- Comprobación

@@ -1,9 +1,10 @@
 // Alabanza Manager usa autenticación por "usuario + contraseña".
 // Supabase Auth siempre necesita un correo, así que cada usuario se mapea a un
-// correo sintético interno: "karen" -> "karen@alabanza.local".
-// Ese correo nunca se muestra ni se usa para enviar nada.
+// correo sintético interno: "karen" -> "karen@alabanza-manager.com".
+// Ese correo nunca se muestra ni se usa para enviar nada. El TLD debe ser real
+// (Supabase rechaza dominios como .local / .test / .localhost).
 
-export const USERNAME_DOMAIN = 'alabanza.local'
+export const USERNAME_DOMAIN = 'alabanza-manager.com'
 
 export function normalizeUsername(value) {
   return String(value ?? '').trim().toLowerCase()

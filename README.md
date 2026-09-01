@@ -12,7 +12,7 @@ ensayos de los equipos de alabanza en las iglesias.
   gestiona todas las iglesias y todas las cuentas.
 - **Autenticación:** solo **usuario + contraseña**. No hay registro público: el
   administrador crea cada cuenta desde **Miembros**. Por debajo, cada usuario se
-  mapea a un correo sintético `usuario@alabanza.local` (nunca se muestra ni recibe
+  mapea a un correo sintético `usuario@alabanza-manager.com` (nunca se muestra ni recibe
   correo).
 
 ## Puesta en marcha
@@ -74,7 +74,7 @@ src/
   lib/
     supabaseClient.js        Cliente de Supabase (lee las env VITE_*)
     adminClient.js           Cliente efímero para crear cuentas sin cerrar sesión
-    username.js              usuario <-> correo sintético (usuario@alabanza.local)
+    username.js              usuario <-> correo sintético (usuario@alabanza-manager.com)
   context/
     AuthContext.jsx          Sesión + perfil: signIn / createAccount / signOut
     ChurchContext.jsx        Iglesia activa, membresías y rol
