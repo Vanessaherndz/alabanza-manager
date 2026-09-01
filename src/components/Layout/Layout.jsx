@@ -14,9 +14,10 @@ const NAV = [
 ]
 
 export default function Layout() {
-  const { user, signOut } = useAuth()
+  const { profile, signOut, isSystemAdmin } = useAuth()
   const { memberships, activeChurchId, selectChurch, isAdmin } = useChurch()
   const navigate = useNavigate()
+  const canAdmin = isAdmin || isSystemAdmin
 
   async function handleSignOut() {
     await signOut()
@@ -44,7 +45,7 @@ export default function Layout() {
         </label>
 
         <nav className={styles.nav}>
-          {NAV.filter((item) => !item.adminOnly || isAdmin).map((item) => (
+          {NAV.filter((item) => !item.adminOnly || canAdmin).map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -59,8 +60,9 @@ export default function Layout() {
         </nav>
 
         <div className={styles.footer}>
-          <span className={styles.userEmail} title={user?.email}>
-            {user?.email}
+          <span className={styles.userEmail} title={profile?.username || ''}>
+            {profile?.username || '…'}
+            {isSystemAdmin && ' · admin sistema'}
           </span>
           <button className="btn btn-secondary" onClick={handleSignOut}>
             Cerrar sesión

@@ -3,7 +3,6 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
 import Layout from './components/Layout/Layout.jsx'
 import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Services from './pages/Services.jsx'
 import Rehearsals from './pages/Rehearsals.jsx'
@@ -17,7 +16,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
 
       <Route
         element={

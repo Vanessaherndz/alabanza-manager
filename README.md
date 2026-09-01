@@ -8,6 +8,12 @@ ensayos de los equipos de alabanza en las iglesias.
 - **Multi-iglesia:** cada iglesia es un espacio aislado; un usuario puede pertenecer
   a varias con un rol distinto en cada una.
 - **Roles por iglesia:** `admin` (gestiona todo) y `user` (usuario base).
+- **Administrador del sistema:** rol global (`profiles.is_system_admin`) que ve y
+  gestiona todas las iglesias y todas las cuentas.
+- **Autenticación:** solo **usuario + contraseña**. No hay registro público: el
+  administrador crea cada cuenta desde **Miembros**. Por debajo, cada usuario se
+  mapea a un correo sintético `usuario@alabanza.local` (nunca se muestra ni recibe
+  correo).
 
 ## Puesta en marcha
 
@@ -21,9 +27,12 @@ npm install
 
 1. Crea un proyecto en <https://supabase.com>.
 2. En **SQL Editor**, pega y ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql).
+   Si ya lo habías ejecutado antes, corre además
+   [`supabase/patch_01_username_system_admin.sql`](supabase/patch_01_username_system_admin.sql).
 3. En **Project Settings → API** copia la _Project URL_ y la _anon public key_.
-4. (Opcional para desarrollo) En **Authentication → Providers → Email**, desactiva
-   "Confirm email" para poder iniciar sesión inmediatamente tras registrarte.
+4. **Obligatorio.** En **Authentication → Providers → Email** desactiva **"Confirm email"**
+   (los correos son sintéticos y no reciben mensajes) y deja activado
+   **"Allow new users to sign up"** (el alta de cuentas del admin lo usa por debajo).
 
 ### 3. Variables de entorno
 
@@ -48,27 +57,34 @@ Abre <http://localhost:5173>.
 
 ## Primer uso
 
-1. Regístrate en `/register`.
-2. En el panel, crea tu iglesia: pasas a ser su **administrador**.
-3. Como admin: crea equipos, canciones, servicios y ensayos, y agrega miembros
-   por correo en **Miembros** (deben haberse registrado antes).
-4. Un **usuario** ve la programación, los setlists y marca su disponibilidad.
+1. Crea la primera cuenta en **Authentication → Users → Add user** (marca
+   _Auto Confirm User_) y ejecuta `supabase/patch_01_username_system_admin.sql`:
+   deja a ese usuario como **administrador del sistema** (paso 7 del patch) y le
+   asigna un `username`.
+2. Inicia sesión en `/login` con ese usuario y contraseña.
+3. En el panel, crea tu iglesia: pasas a ser su **administrador**.
+4. Como admin: crea equipos, canciones, servicios y ensayos. En **Miembros**
+   creas las cuentas del equipo (usuario + contraseña) y les pasas las credenciales.
+5. Un **usuario** ve la programación, los setlists y marca su disponibilidad.
 
 ## Estructura
 
 ```
 src/
-  lib/supabaseClient.js      Cliente de Supabase (lee las env VITE_*)
+  lib/
+    supabaseClient.js        Cliente de Supabase (lee las env VITE_*)
+    adminClient.js           Cliente efímero para crear cuentas sin cerrar sesión
+    username.js              usuario <-> correo sintético (usuario@alabanza.local)
   context/
-    AuthContext.jsx          Sesión: signIn / signUp / signOut
+    AuthContext.jsx          Sesión + perfil: signIn / createAccount / signOut
     ChurchContext.jsx        Iglesia activa, membresías y rol
   components/
     ProtectedRoute.jsx       Exige sesión
-    RoleRoute.jsx            Exige rol (p. ej. admin)
+    RoleRoute.jsx            Exige rol (admin de iglesia o admin del sistema)
     Layout/                   Barra lateral + selector de iglesia
     EventManager.jsx         CRUD compartido de servicios / ensayos
   pages/
-    Login / Register
+    Login                    Entrar con usuario + contraseña
     Dashboard                Resumen + crear iglesia
     Services / Rehearsals    Eventos (type = servicio | ensayo)
     Teams                    Equipos de alabanza
@@ -77,13 +93,14 @@ src/
     Members                  Gestión de miembros y roles (solo admin)
 supabase/
   schema.sql                 Tablas, tipos, funciones RPC y políticas RLS
+  patch_01_username_system_admin.sql   Migración: usuario + admin del sistema
 ```
 
 ## Modelo de datos
 
 | Tabla                | Descripción                                             |
 | -------------------- | ------------------------------------------------------- |
-| `profiles`           | 1:1 con `auth.users` (se crea por trigger al registrarse) |
+| `profiles`           | 1:1 con `auth.users`; `username` visible + `is_system_admin` |
 | `churches`           | La iglesia (tenant)                                    |
 | `church_members`     | Pertenencia + rol (`admin` / `user`) por iglesia       |
 | `teams`              | Equipos de alabanza de una iglesia                     |
@@ -97,7 +114,8 @@ supabase/
 ### Funciones RPC
 
 - `create_church(_name, _city)` – crea la iglesia y te deja como `admin`.
-- `add_member_by_email(_church_id, _email, _role)` – agrega/actualiza un miembro (solo admin).
+- `add_member_by_username(_church_id, _username, _role)` – agrega/actualiza un miembro (solo admin).
+- `is_system_admin()` – `true` si el usuario actual es administrador del sistema.
 
 Toda la seguridad se aplica con **RLS**: los miembros solo ven los datos de sus
 iglesias y solo los `admin` pueden crear/editar/borrar.

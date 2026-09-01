@@ -6,7 +6,7 @@ const ChurchContext = createContext(null)
 const STORAGE_KEY = 'alabanza:activeChurchId'
 
 export function ChurchProvider({ children }) {
-  const { user } = useAuth()
+  const { user, isSystemAdmin } = useAuth()
   const [memberships, setMemberships] = useState([])
   const [activeChurchId, setActiveChurchId] = useState(
     () => localStorage.getItem(STORAGE_KEY) || null,
@@ -20,6 +20,23 @@ export function ChurchProvider({ children }) {
       return
     }
     setLoading(true)
+
+    // El admin del sistema gestiona todas las iglesias.
+    if (isSystemAdmin) {
+      const { data, error } = await supabase
+        .from('churches')
+        .select('id, name, city')
+        .order('name')
+      if (error) {
+        console.error('Error cargando iglesias:', error.message)
+        setMemberships([])
+      } else {
+        setMemberships((data ?? []).map((church) => ({ role: 'admin', church })))
+      }
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from('church_members')
       .select('role, church:churches (id, name, city)')
@@ -32,7 +49,7 @@ export function ChurchProvider({ children }) {
       setMemberships(data ?? [])
     }
     setLoading(false)
-  }, [user])
+  }, [user, isSystemAdmin])
 
   useEffect(() => {
     loadMemberships()

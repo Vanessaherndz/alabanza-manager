@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import styles from './Auth.module.css'
 
@@ -7,7 +7,7 @@ export default function Login() {
   const { user, signIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -20,10 +20,10 @@ export default function Login() {
     e.preventDefault()
     setError('')
     setBusy(true)
-    const { error } = await signIn(email, password)
+    const { error } = await signIn(usuario, password)
     setBusy(false)
     if (error) {
-      setError(error.message)
+      setError('Usuario o contraseña incorrectos.')
       return
     }
     navigate(from, { replace: true })
@@ -36,13 +36,16 @@ export default function Login() {
         <p className={styles.subtitle}>Gestión de servicios y ensayos de alabanza</p>
 
         <div className="field">
-          <label htmlFor="email">Correo</label>
+          <label htmlFor="usuario">Usuario</label>
           <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            id="usuario"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
             required
           />
         </div>
@@ -66,7 +69,7 @@ export default function Login() {
         </button>
 
         <p className={styles.switch}>
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+          ¿No tienes cuenta? Pídele al administrador que te la cree.
         </p>
       </form>
     </div>

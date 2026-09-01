@@ -43,14 +43,19 @@ $$;
 -- profiles: 1:1 con auth.users
 -- -----------------------------------------------------------------------------
 create table if not exists public.profiles (
-  id          uuid primary key references auth.users (id) on delete cascade,
-  email       text,
-  full_name   text,
-  phone       text,
-  avatar_url  text,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  id              uuid primary key references auth.users (id) on delete cascade,
+  email           text,
+  username        text,
+  full_name       text,
+  phone           text,
+  avatar_url      text,
+  is_system_admin boolean not null default false,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
+
+create unique index if not exists profiles_username_key
+  on public.profiles (lower(username));
 
 create trigger profiles_set_updated_at
   before update on public.profiles
@@ -60,9 +65,23 @@ create trigger profiles_set_updated_at
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email, full_name)
-  values (new.id, new.email, coalesce(new.raw_user_meta_data ->> 'full_name', new.email))
-  on conflict (id) do update set email = excluded.email;
+  insert into public.profiles (id, email, full_name, username, phone)
+  values (
+    new.id,
+    new.email,
+    coalesce(
+      new.raw_user_meta_data ->> 'full_name',
+      new.raw_user_meta_data ->> 'username',
+      new.email
+    ),
+    new.raw_user_meta_data ->> 'username',
+    new.raw_user_meta_data ->> 'phone'
+  )
+  on conflict (id) do update set
+    email     = excluded.email,
+    full_name = coalesce(excluded.full_name, public.profiles.full_name),
+    username  = coalesce(excluded.username, public.profiles.username),
+    phone     = coalesce(excluded.phone, public.profiles.phone);
   return new;
 end;
 $$;
@@ -105,9 +124,18 @@ create index if not exists church_members_profile_idx on public.church_members (
 -- -----------------------------------------------------------------------------
 -- Helpers de seguridad (SECURITY DEFINER para evitar recursion de RLS)
 -- -----------------------------------------------------------------------------
+-- ¿El usuario actual es administrador del sistema? (rol global, por encima de las iglesias)
+create or replace function public.is_system_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select p.is_system_admin from public.profiles p where p.id = auth.uid()),
+    false
+  );
+$$;
+
 create or replace function public.is_church_member(_church_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
+  select public.is_system_admin() or exists (
     select 1 from public.church_members cm
     where cm.church_id = _church_id and cm.profile_id = auth.uid()
   );
@@ -115,7 +143,7 @@ $$;
 
 create or replace function public.is_church_admin(_church_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
+  select public.is_system_admin() or exists (
     select 1 from public.church_members cm
     where cm.church_id = _church_id
       and cm.profile_id = auth.uid()
@@ -144,11 +172,11 @@ begin
 end;
 $$;
 
--- Agregar un miembro a la iglesia por su correo (debe estar registrado)
-create or replace function public.add_member_by_email(
+-- Agregar un miembro a la iglesia por su nombre de usuario (debe existir la cuenta)
+create or replace function public.add_member_by_username(
   _church_id uuid,
-  _email text,
-  _role public.app_role default 'user'
+  _username  text,
+  _role      public.app_role default 'user'
 )
 returns void language plpgsql security definer set search_path = public as $$
 declare
@@ -158,9 +186,11 @@ begin
     raise exception 'Solo un administrador puede agregar miembros';
   end if;
 
-  select id into target from auth.users where lower(email) = lower(_email);
+  select id into target from public.profiles
+  where lower(username) = lower(trim(_username));
+
   if target is null then
-    raise exception 'No existe un usuario registrado con el correo %', _email;
+    raise exception 'No existe un usuario con el nombre "%"', _username;
   end if;
 
   insert into public.church_members (church_id, profile_id, role)
@@ -337,6 +367,12 @@ create policy "profiles: leer companeros de iglesia" on public.profiles
 create policy "profiles: actualizar propio" on public.profiles
   for update using (id = auth.uid()) with check (id = auth.uid());
 
+create policy "profiles: system admin ve todo" on public.profiles
+  for select using (public.is_system_admin());
+
+create policy "profiles: system admin gestiona" on public.profiles
+  for update using (public.is_system_admin()) with check (public.is_system_admin());
+
 -- ---- churches ----
 create policy "churches: leer si soy miembro" on public.churches
   for select using (public.is_church_member(id));
@@ -447,6 +483,7 @@ create policy "availability: admin gestiona" on public.availability
 -- Permisos de ejecucion de las funciones RPC
 -- =============================================================================
 grant execute on function public.create_church(text, text) to authenticated;
-grant execute on function public.add_member_by_email(uuid, text, public.app_role) to authenticated;
+grant execute on function public.add_member_by_username(uuid, text, public.app_role) to authenticated;
+grant execute on function public.is_system_admin() to authenticated;
 grant execute on function public.is_church_member(uuid) to authenticated;
 grant execute on function public.is_church_admin(uuid) to authenticated;
