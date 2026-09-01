@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
 import { SERVICE_SECTIONS, SIN_SECCION } from '../lib/serviceSections.js'
+import { ROLE_OPTIONS } from '../lib/serviceRoles.js'
 import styles from './ServiceDetail.module.css'
 
 const STATUS_OPTIONS = [
@@ -40,7 +41,7 @@ export default function ServiceDetail() {
   const [members, setMembers] = useState([]) // church_members -> profiles
 
   const [newSong, setNewSong] = useState({ songId: '', section: '', song_key: '' })
-  const [newMember, setNewMember] = useState({ profileId: '', role: '' })
+  const [newMember, setNewMember] = useState({ profileId: '', role: 'Piano', roleOtro: '' })
 
   const loadEvent = useCallback(async () => {
     const { data, error } = await supabase
@@ -139,10 +140,14 @@ export default function ServiceDetail() {
     e.preventDefault()
     setError('')
     if (!newMember.profileId) return
+    const role =
+      newMember.role === 'Otro'
+        ? newMember.roleOtro.trim() || null
+        : newMember.role
     const { error } = await supabase.from('event_assignments').insert({
       event_id: id,
       profile_id: newMember.profileId,
-      role: newMember.role || null,
+      role,
       status: 'invitado',
     })
     if (error) {
@@ -153,7 +158,7 @@ export default function ServiceDetail() {
       )
       return
     }
-    setNewMember({ profileId: '', role: '' })
+    setNewMember({ profileId: '', role: 'Piano', roleOtro: '' })
     loadTeam()
   }
 
@@ -406,14 +411,31 @@ export default function ServiceDetail() {
               </div>
               <div className="field">
                 <label>Rol / instrumento</label>
-                <input
+                <select
                   value={newMember.role}
                   onChange={(e) =>
                     setNewMember({ ...newMember, role: e.target.value })
                   }
-                  placeholder="Voz, Guitarra, Batería…"
-                />
+                >
+                  {ROLE_OPTIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
               </div>
+              {newMember.role === 'Otro' && (
+                <div className="field">
+                  <label>Especificar</label>
+                  <input
+                    value={newMember.roleOtro}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, roleOtro: e.target.value })
+                    }
+                    placeholder="Ej: Percusión"
+                  />
+                </div>
+              )}
             </div>
             <button
               className="btn"

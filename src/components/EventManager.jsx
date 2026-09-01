@@ -21,7 +21,7 @@ function formatDateTime(iso) {
   })
 }
 
-export default function EventManager({ type }) {
+export default function EventManager({ type, createHref }) {
   const { user } = useAuth()
   const { activeChurchId, isAdmin } = useChurch()
   const labels = LABELS[type]
@@ -87,7 +87,15 @@ export default function EventManager({ type }) {
     <div className={styles.page}>
       <h1>{labels.title}</h1>
 
-      {isAdmin && (
+      {isAdmin && createHref && (
+        <div>
+          <Link className="btn" to={createHref}>
+            + Nuevo {labels.singular}
+          </Link>
+        </div>
+      )}
+
+      {isAdmin && !createHref && (
         <form className="card" onSubmit={handleCreate}>
           <h3>Nuevo {labels.singular}</h3>
           <div className={styles.grid}>

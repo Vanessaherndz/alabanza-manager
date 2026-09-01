@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
+import { SERVICE_SECTIONS, SIN_SECCION } from '../lib/serviceSections.js'
+import { INSTRUMENTS, CANTANTE_ROLE } from '../lib/serviceRoles.js'
 import styles from './Dashboard.module.css'
 
 const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -36,6 +38,14 @@ function hora(iso) {
   const ampm = h < 12 ? 'AM' : 'PM'
   h = h % 12 || 12
   return `${h}:${m} ${ampm}`
+}
+
+function diasRestantes(iso) {
+  const ms = new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)
+  const d = Math.round(ms / 86400000)
+  if (d <= 0) return 'Hoy'
+  if (d === 1) return 'Mañana'
+  return `En ${d} días`
 }
 
 const ESTADO = {
@@ -102,7 +112,7 @@ function Calendario({ churchId }) {
     const n = new Date()
     return new Date(n.getFullYear(), n.getMonth(), 1)
   })
-  const [dias, setDias] = useState(new Set())
+  const [dias, setDias] = useState(new Map())
 
   useEffect(() => {
     if (!churchId) return
@@ -112,13 +122,19 @@ function Calendario({ churchId }) {
 
     supabase
       .from('events')
-      .select('starts_at')
+      .select('title, type, starts_at')
       .eq('church_id', churchId)
       .gte('starts_at', desde.toISOString())
       .lt('starts_at', hasta.toISOString())
       .then(({ data }) => {
         if (!active) return
-        setDias(new Set((data ?? []).map((e) => new Date(e.starts_at).getDate())))
+        const m = new Map()
+        for (const e of data ?? []) {
+          const d = new Date(e.starts_at).getDate()
+          if (!m.has(d)) m.set(d, [])
+          m.get(d).push(e.title)
+        }
+        setDias(m)
       })
     return () => {
       active = false
@@ -136,7 +152,8 @@ function Calendario({ churchId }) {
       cursor.getMonth() + 1,
       0,
     ).getDate()
-    const primerDow = (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 6) % 7
+    const primerDow =
+      (new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay() + 6) % 7
     const arr = Array(primerDow).fill(null)
     for (let d = 1; d <= totalDias; d++) arr.push(d)
     return arr
@@ -173,30 +190,40 @@ function Calendario({ churchId }) {
         {celdas.map((d, i) => {
           if (d === null) return <span key={`e${i}`} />
           const hoyCel = esMesActual && d === hoy.getDate()
+          const titulos = dias.get(d)
           return (
             <span
               key={d}
               className={`${styles.calDay} ${hoyCel ? styles.calToday : ''}`}
+              title={titulos ? titulos.join(' · ') : undefined}
             >
               {d}
-              {dias.has(d) && <span className={styles.calDot} />}
+              {titulos && <span className={styles.calDot} />}
             </span>
           )
         })}
       </div>
+      <p className={styles.calLegend}>
+        <span className={styles.calDotInline} /> día con evento
+      </p>
     </section>
   )
 }
 
 export default function Dashboard() {
   const { profile } = useAuth()
-  const { loading, memberships, activeChurchId, refresh } = useChurch()
+  const { loading, memberships, activeChurch, activeChurchId, refresh } = useChurch()
   const navigate = useNavigate()
 
   const [next, setNext] = useState(null)
   const [setlist, setSetlist] = useState([])
   const [equipo, setEquipo] = useState([])
-  const [stats, setStats] = useState({ servicios: 0, ensayos: 0, canciones: 0, miembros: 0 })
+  const [stats, setStats] = useState({
+    servicios: 0,
+    ensayos: 0,
+    canciones: 0,
+    miembros: 0,
+  })
 
   useEffect(() => {
     if (!activeChurchId) return
@@ -222,7 +249,7 @@ export default function Dashboard() {
         const [{ data: songs }, { data: asig }] = await Promise.all([
           supabase
             .from('event_songs')
-            .select('position, song_key, song:songs (title, song_key, bpm)')
+            .select('position, song_key, section, song:songs (title, song_key, bpm)')
             .eq('event_id', ev.id)
             .order('position', { ascending: true }),
           supabase
@@ -276,6 +303,33 @@ export default function Dashboard() {
     }
   }, [activeChurchId])
 
+  const grupos = useMemo(() => {
+    return [...SERVICE_SECTIONS, SIN_SECCION]
+      .map((name) => ({
+        name,
+        items: setlist.filter((s) => (s.section || SIN_SECCION) === name),
+      }))
+      .filter((g) => g.items.length > 0)
+  }, [setlist])
+
+  const equipoGrupos = useMemo(() => {
+    const orden = [...INSTRUMENTS, CANTANTE_ROLE]
+    const grupos = [
+      { name: 'Instrumentos', items: [] },
+      { name: 'Cantantes', items: [] },
+      { name: 'Otros', items: [] },
+    ]
+    for (const a of equipo) {
+      if (a.role === CANTANTE_ROLE) grupos[1].items.push(a)
+      else if (INSTRUMENTS.includes(a.role)) grupos[0].items.push(a)
+      else grupos[2].items.push(a)
+    }
+    grupos[0].items.sort(
+      (x, y) => orden.indexOf(x.role) - orden.indexOf(y.role),
+    )
+    return grupos.filter((g) => g.items.length > 0)
+  }, [equipo])
+
   if (loading) return <p>Cargando…</p>
 
   if (memberships.length === 0) {
@@ -288,6 +342,7 @@ export default function Dashboard() {
   }
 
   const nombre = profile?.full_name?.split(/\s+/)[0] || profile?.username || ''
+  const confirmados = equipo.filter((a) => a.status === 'confirmado').length
 
   return (
     <div className={styles.page}>
@@ -296,12 +351,12 @@ export default function Dashboard() {
           <h1>
             {saludo()}, {nombre} <span aria-hidden>👋</span>
           </h1>
-          <p className="muted">Todo listo para tu próximo servicio.</p>
+          <p className="muted">
+            {activeChurch?.name ? `${activeChurch.name} · ` : ''}
+            Todo listo para tu próximo servicio.
+          </p>
         </div>
-        <button
-          className="btn btn-secondary"
-          onClick={() => navigate('/servicios')}
-        >
+        <button className="btn" onClick={() => navigate('/servicios/nuevo')}>
           + Crear servicio
         </button>
       </div>
@@ -320,17 +375,22 @@ export default function Dashboard() {
                   {setlist.length === 1 ? 'canción' : 'canciones'}
                   {next.location ? ` · ${next.location}` : ''}
                 </p>
-                <Link to="/servicios" className={styles.nsLink}>
-                  Ver servicio →
-                </Link>
+                <div className={styles.nsRow}>
+                  <span className={styles.nsBadge}>
+                    {diasRestantes(next.starts_at)}
+                  </span>
+                  <Link to={`/servicios/${next.id}`} className={styles.nsLink}>
+                    Ver servicio →
+                  </Link>
+                </div>
               </>
             ) : (
               <>
                 <h2>Sin servicios próximos</h2>
                 <p className={styles.nsEmpty}>
-                  Crea un servicio para empezar a organizar el setlist y el equipo.
+                  Crea un servicio para organizar el setlist y el equipo.
                 </p>
-                <Link to="/servicios" className={styles.nsLink}>
+                <Link to="/servicios/nuevo" className={styles.nsLink}>
                   Crear servicio →
                 </Link>
               </>
@@ -340,25 +400,30 @@ export default function Dashboard() {
           <section className="card">
             <div className={styles.cardHead}>
               <h3>Setlist del servicio</h3>
-              <Link to="/servicios">Ver completo →</Link>
+              {next && <Link to={`/servicios/${next.id}`}>Ver completo →</Link>}
             </div>
             {setlist.length === 0 ? (
               <p className="muted">Sin canciones en el setlist.</p>
             ) : (
-              setlist.map((s, i) => (
-                <div className={styles.songRow} key={i}>
-                  <span className={styles.songPos}>
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span className={styles.songTitle}>
-                    {s.song?.title ?? '—'}
-                  </span>
-                  <span className={styles.songKey}>
-                    {s.song_key || s.song?.song_key || '—'}
-                  </span>
-                  <span className={styles.songBpm}>
-                    {s.song?.bpm ? `${s.song.bpm}` : '—'}
-                  </span>
+              grupos.map((g) => (
+                <div key={g.name}>
+                  <p className={styles.groupLabel}>{g.name}</p>
+                  {g.items.map((s, i) => (
+                    <div className={styles.songRow} key={i}>
+                      <span className={styles.songPos}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className={styles.songTitle}>
+                        {s.song?.title ?? '—'}
+                      </span>
+                      <span className={styles.songKey}>
+                        {s.song_key || s.song?.song_key || '—'}
+                      </span>
+                      <span className={styles.songBpm}>
+                        {s.song?.bpm ? `${s.song.bpm}` : '—'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ))
             )}
@@ -370,52 +435,66 @@ export default function Dashboard() {
 
           <section className="card">
             <div className={styles.cardHead}>
-              <h3>Equipo asignado</h3>
-              <Link to="/miembros">Gestionar</Link>
+              <h3>
+                Equipo asignado
+                {equipo.length > 0 && (
+                  <span className={styles.count}>
+                    {' '}
+                    {confirmados}/{equipo.length}
+                  </span>
+                )}
+              </h3>
+              {next && <Link to={`/servicios/${next.id}`}>Gestionar</Link>}
             </div>
             {equipo.length === 0 ? (
               <p className="muted">Sin asignaciones.</p>
             ) : (
-              equipo.map((a, i) => {
-                const est = ESTADO[a.status] ?? ESTADO.invitado
-                const nom = a.profile?.full_name || a.profile?.username || '—'
-                return (
-                  <div className={styles.teamRow} key={i}>
-                    <span className={styles.avatar}>{iniciales(nom)}</span>
-                    <span>
-                      <span className={styles.teamName}>{nom}</span>
-                      {a.role && (
-                        <span className={styles.teamRole}>{a.role}</span>
-                      )}
-                    </span>
-                    <span className={`${styles.teamStatus} ${est.cls}`}>
-                      {est.txt}
-                    </span>
-                  </div>
-                )
-              })
+              equipoGrupos.map((g) => (
+                <div key={g.name}>
+                  <p className={styles.groupLabel}>{g.name}</p>
+                  {g.items.map((a, i) => {
+                    const est = ESTADO[a.status] ?? ESTADO.invitado
+                    const nom =
+                      a.profile?.full_name || a.profile?.username || '—'
+                    return (
+                      <div className={styles.teamRow} key={i}>
+                        <span className={styles.avatar}>{iniciales(nom)}</span>
+                        <span className={styles.teamMain}>
+                          <span className={styles.teamName}>{nom}</span>
+                          {a.role && (
+                            <span className={styles.teamRole}>{a.role}</span>
+                          )}
+                        </span>
+                        <span className={`${styles.teamStatus} ${est.cls}`}>
+                          {est.txt}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))
             )}
           </section>
         </div>
       </div>
 
       <div className={styles.stats}>
-        <div className="card">
+        <Link to="/servicios" className="card">
           <span className={styles.statNum}>{stats.servicios}</span>
           <span className="muted">Servicios próximos</span>
-        </div>
-        <div className="card">
+        </Link>
+        <Link to="/ensayos" className="card">
           <span className={styles.statNum}>{stats.ensayos}</span>
           <span className="muted">Ensayos próximos</span>
-        </div>
-        <div className="card">
+        </Link>
+        <Link to="/canciones" className="card">
           <span className={styles.statNum}>{stats.canciones}</span>
           <span className="muted">Canciones</span>
-        </div>
-        <div className="card">
+        </Link>
+        <Link to="/miembros" className="card">
           <span className={styles.statNum}>{stats.miembros}</span>
           <span className="muted">Miembros</span>
-        </div>
+        </Link>
       </div>
 
       <CreateChurchCard onCreated={refresh} />

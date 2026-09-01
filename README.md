@@ -76,6 +76,7 @@ src/
     adminClient.js           Cliente efímero para crear cuentas sin cerrar sesión
     username.js              usuario <-> correo sintético (usuario@alabanza-manager.com)
     serviceSections.js       Momentos del servicio (Bienvenida, Adoración, Júbilo, Despedida)
+    serviceRoles.js          Instrumentos fijos (Piano, Bajo, Guitarra eléctrica, Batería) + Cantante
   context/
     AuthContext.jsx          Sesión + perfil: signIn / createAccount / signOut
     ChurchContext.jsx        Iglesia activa, membresías y rol
@@ -88,6 +89,8 @@ src/
     Login                    Entrar con usuario + contraseña
     Dashboard                Próximo servicio, calendario, setlist y equipo
     Services / Rehearsals    Eventos (type = servicio | ensayo)
+    ServiceForm              /servicios/nuevo – crea servicio con canciones (Júbilo/
+                             Adoración/…) e instrumentos + cantantes en un solo paso
     ServiceDetail            /servicios/:id – alabanzas por momento + equipo asignado
     Teams                    Equipos de alabanza
     Songs                    Repertorio (CRUD completo de ejemplo)

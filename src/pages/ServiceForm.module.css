@@ -1,0 +1,123 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 860px;
+}
+
+.back {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0 1rem;
+}
+
+.weekday {
+  text-transform: capitalize;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Canciones: Júbilo y Adoración como columnas principales */
+.songCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .songCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.block {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+}
+
+.blockTitle {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eef0f6;
+  border-radius: 999px;
+  padding: 0.25rem 0.35rem 0.25rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.chip button {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+}
+
+.chip button:hover {
+  color: var(--color-danger);
+}
+
+.picker {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.picker select {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 0.85rem;
+}
+
+/* Instrumentos */
+.instRow {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.instRow:last-child {
+  border-bottom: none;
+}
+
+.instName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding-top: 0.4rem;
+}
+
+@media (max-width: 560px) {
+  .instRow {
+    grid-template-columns: 1fr;
+  }
+}

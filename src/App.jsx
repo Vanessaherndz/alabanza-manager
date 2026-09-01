@@ -5,6 +5,7 @@ import Layout from './components/Layout/Layout.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Services from './pages/Services.jsx'
+import ServiceForm from './pages/ServiceForm.jsx'
 import ServiceDetail from './pages/ServiceDetail.jsx'
 import Rehearsals from './pages/Rehearsals.jsx'
 import Teams from './pages/Teams.jsx'
@@ -27,6 +28,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="servicios" element={<Services />} />
+        <Route path="servicios/nuevo" element={<ServiceForm />} />
         <Route path="servicios/:id" element={<ServiceDetail />} />
         <Route path="ensayos" element={<Rehearsals />} />
         <Route path="equipos" element={<Teams />} />
