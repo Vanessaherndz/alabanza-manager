@@ -289,6 +289,7 @@ create table if not exists public.event_songs (
   song_id    uuid not null references public.songs (id) on delete cascade,
   position   integer not null default 0,
   song_key   text,   -- tonalidad especifica para este evento (opcional)
+  section    text,   -- momento del servicio: Bienvenida, Adoracion, Jubilo, Despedida...
   notes      text,
   unique (event_id, song_id)
 );

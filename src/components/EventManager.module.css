@@ -30,3 +30,9 @@
 .list p {
   margin: 0.4rem 0 0;
 }
+
+.itemActions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}

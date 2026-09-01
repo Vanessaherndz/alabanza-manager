@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
@@ -140,19 +141,32 @@ export default function EventManager({ type }) {
           {events.map((ev) => (
             <li key={ev.id} className="card">
               <div>
-                <strong>{ev.title}</strong>
+                {type === 'servicio' ? (
+                  <Link to={`/servicios/${ev.id}`}>
+                    <strong>{ev.title}</strong>
+                  </Link>
+                ) : (
+                  <strong>{ev.title}</strong>
+                )}
                 <div className="muted">{formatDateTime(ev.starts_at)}</div>
                 {ev.location && <div className="muted">📍 {ev.location}</div>}
                 {ev.notes && <p>{ev.notes}</p>}
               </div>
-              {isAdmin && (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => handleDelete(ev.id)}
-                >
-                  Eliminar
-                </button>
-              )}
+              <div className={styles.itemActions}>
+                {type === 'servicio' && (
+                  <Link className="btn btn-secondary" to={`/servicios/${ev.id}`}>
+                    Abrir
+                  </Link>
+                )}
+                {isAdmin && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleDelete(ev.id)}
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

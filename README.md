@@ -75,6 +75,7 @@ src/
     supabaseClient.js        Cliente de Supabase (lee las env VITE_*)
     adminClient.js           Cliente efímero para crear cuentas sin cerrar sesión
     username.js              usuario <-> correo sintético (usuario@alabanza-manager.com)
+    serviceSections.js       Momentos del servicio (Bienvenida, Adoración, Júbilo, Despedida)
   context/
     AuthContext.jsx          Sesión + perfil: signIn / createAccount / signOut
     ChurchContext.jsx        Iglesia activa, membresías y rol
@@ -85,8 +86,9 @@ src/
     EventManager.jsx         CRUD compartido de servicios / ensayos
   pages/
     Login                    Entrar con usuario + contraseña
-    Dashboard                Resumen + crear iglesia
+    Dashboard                Próximo servicio, calendario, setlist y equipo
     Services / Rehearsals    Eventos (type = servicio | ensayo)
+    ServiceDetail            /servicios/:id – alabanzas por momento + equipo asignado
     Teams                    Equipos de alabanza
     Songs                    Repertorio (CRUD completo de ejemplo)
     Availability             Disponibilidad propia por fecha
@@ -94,6 +96,7 @@ src/
 supabase/
   schema.sql                 Tablas, tipos, funciones RPC y políticas RLS
   patch_01_username_system_admin.sql   Migración: usuario + admin del sistema
+  patch_02_service_sections.sql        Migración: event_songs.section (momento)
 ```
 
 ## Modelo de datos
@@ -107,7 +110,7 @@ supabase/
 | `team_members`       | Integrantes de cada equipo y sus roles/instrumentos    |
 | `songs`              | Repertorio de la iglesia                               |
 | `events`             | Servicios y ensayos (`type`), un ensayo puede colgar de un servicio |
-| `event_songs`        | Setlist de cada evento                                 |
+| `event_songs`        | Setlist de cada evento; `section` = momento del servicio |
 | `event_assignments`  | Quién participa en cada evento y su confirmación       |
 | `availability`       | Disponibilidad de cada integrante por fecha            |
 
