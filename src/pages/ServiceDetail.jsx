@@ -58,20 +58,22 @@ export default function ServiceDetail() {
   }, [id])
 
   const loadSongs = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('event_songs')
       .select('id, position, song_key, section, song:songs (id, title, artist, song_key, bpm)')
       .eq('event_id', id)
       .order('position', { ascending: true })
+    if (error) setError(error.message)
     setSongs(data ?? [])
   }, [id])
 
   const loadTeam = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('event_assignments')
-      .select('id, role, status, profile:profiles (id, username, full_name)')
+      .select('id, role, section, status, profile:profiles (id, username, full_name)')
       .eq('event_id', id)
       .order('created_at', { ascending: true })
+    if (error) setError(error.message)
     setTeam(data ?? [])
   }, [id])
 
@@ -358,7 +360,10 @@ export default function ServiceDetail() {
             </span>
             <span className={styles.rowMain}>
               <span className={styles.rowTitle}>{nombreDe(a.profile)}</span>
-              <span className={styles.rowMeta}>{a.role || 'Sin rol'}</span>
+              <span className={styles.rowMeta}>
+                {a.role || 'Sin rol'}
+                {a.section ? ` · ${a.section}` : ''}
+              </span>
             </span>
             <span className={styles.rowActions}>
               {isAdmin ? (

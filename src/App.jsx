@@ -7,10 +7,8 @@ import Dashboard from './pages/Dashboard.jsx'
 import Services from './pages/Services.jsx'
 import ServiceForm from './pages/ServiceForm.jsx'
 import ServiceDetail from './pages/ServiceDetail.jsx'
-import Rehearsals from './pages/Rehearsals.jsx'
 import Teams from './pages/Teams.jsx'
 import Songs from './pages/Songs.jsx'
-import Availability from './pages/Availability.jsx'
 import Members from './pages/Members.jsx'
 import NotFound from './pages/NotFound.jsx'
 
@@ -30,10 +28,8 @@ export default function App() {
         <Route path="servicios" element={<Services />} />
         <Route path="servicios/nuevo" element={<ServiceForm />} />
         <Route path="servicios/:id" element={<ServiceDetail />} />
-        <Route path="ensayos" element={<Rehearsals />} />
         <Route path="equipos" element={<Teams />} />
         <Route path="canciones" element={<Songs />} />
-        <Route path="disponibilidad" element={<Availability />} />
         <Route
           path="miembros"
           element={

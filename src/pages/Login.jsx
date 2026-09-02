@@ -32,8 +32,11 @@ export default function Login() {
   return (
     <div className={styles.wrap}>
       <form className={styles.box} onSubmit={handleSubmit}>
+        <div className={styles.logo} aria-hidden>
+          <img src="/logo-koala-white.png" alt="" className={styles.logoIcon} />
+        </div>
         <h1 className={styles.title}>Iniciar sesión</h1>
-        <p className={styles.subtitle}>Gestión de servicios y ensayos de alabanza</p>
+        <p className={styles.subtitle}>Gestión de servicios de alabanza</p>
 
         <div className="field">
           <label htmlFor="usuario">Usuario</label>

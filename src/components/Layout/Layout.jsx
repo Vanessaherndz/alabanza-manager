@@ -4,14 +4,18 @@ import { useChurch } from '../../context/ChurchContext.jsx'
 import styles from './Layout.module.css'
 
 const NAV = [
-  { to: '/', label: 'Panel', end: true },
-  { to: '/servicios', label: 'Servicios' },
-  { to: '/ensayos', label: 'Ensayos' },
-  { to: '/equipos', label: 'Equipos' },
-  { to: '/canciones', label: 'Canciones' },
-  { to: '/disponibilidad', label: 'Disponibilidad' },
-  { to: '/miembros', label: 'Miembros', adminOnly: true },
+  { to: '/', label: 'Panel', end: true, icon: '▦' },
+  { to: '/servicios', label: 'Servicios', icon: '🎤' },
+  { to: '/equipos', label: 'Equipos', icon: '👥' },
+  { to: '/canciones', label: 'Canciones', icon: '🎵' },
+  { to: '/miembros', label: 'Miembros', icon: '🛡️', adminOnly: true },
 ]
+
+function iniciales(nombre) {
+  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return '?'
+  return (partes[0][0] + (partes[1]?.[0] ?? '')).toUpperCase()
+}
 
 export default function Layout() {
   const { profile, signOut, isSystemAdmin } = useAuth()
@@ -27,7 +31,12 @@ export default function Layout() {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <div className={styles.brand}>🎵 Alabanza Manager</div>
+        <div className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden>
+            <img src="/logo-koala-white.png" alt="" className={styles.brandIcon} />
+          </span>
+          Alabanza Manager
+        </div>
 
         <label className={styles.churchPicker}>
           <span>Iglesia</span>
@@ -54,16 +63,24 @@ export default function Layout() {
                 isActive ? `${styles.link} ${styles.linkActive}` : styles.link
               }
             >
+              <span className={styles.linkIcon} aria-hidden>
+                {item.icon}
+              </span>
               {item.label}
             </NavLink>
           ))}
         </nav>
 
         <div className={styles.footer}>
-          <span className={styles.userEmail} title={profile?.username || ''}>
-            {profile?.username || '…'}
-            {isSystemAdmin && ' · admin sistema'}
-          </span>
+          <div className={styles.userChip}>
+            <span className={styles.userAvatar}>
+              {iniciales(profile?.full_name || profile?.username)}
+            </span>
+            <span className={styles.userInfo}>
+              <span className={styles.userName}>{profile?.username || '…'}</span>
+              {isSystemAdmin && <span className={styles.userTag}>Admin del sistema</span>}
+            </span>
+          </div>
           <button className="btn btn-secondary" onClick={handleSignOut}>
             Cerrar sesión
           </button>

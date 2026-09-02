@@ -4,13 +4,18 @@ import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
 import { INSTRUMENTS, CANTANTE_ROLE } from '../lib/serviceRoles.js'
+import { SERVICE_SECTIONS } from '../lib/serviceSections.js'
 import styles from './ServiceForm.module.css'
-
-// Júbilo y Adoración como columnas principales; luego Bienvenida y Despedida.
-const SONG_ORDER = ['Júbilo', 'Adoración', 'Bienvenida', 'Despedida']
 
 function nombreDe(p) {
   return p?.full_name || p?.username || '—'
+}
+
+// Interpreta "YYYY-MM-DD" como mediodía en hora local, para no correr de día
+// al convertir a Date/ISO por el huso horario.
+function fechaInputALocal(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d, 12, 0, 0)
 }
 
 /** Selector de personas con "chips" (permite varias). */
@@ -112,16 +117,25 @@ export default function ServiceForm() {
   const [datos, setDatos] = useState({
     title: '',
     starts_at: '',
-    location: '',
-    notes: '',
   })
-  const [songs, setSongs] = useState(() =>
-    Object.fromEntries(SONG_ORDER.map((s) => [s, []])),
+  // Estado por momento del servicio: canciones, cantantes y músicos de cada uno.
+  const [sections, setSections] = useState(() =>
+    Object.fromEntries(
+      SERVICE_SECTIONS.map((s) => [
+        s,
+        {
+          tono: '',
+          songs: [],
+          cantantes: [],
+          inst: Object.fromEntries(INSTRUMENTS.map((i) => [i, []])),
+        },
+      ]),
+    ),
   )
-  const [inst, setInst] = useState(() =>
-    Object.fromEntries(INSTRUMENTS.map((i) => [i, []])),
-  )
-  const [cantantes, setCantantes] = useState([])
+
+  function updateSection(section, patch) {
+    setSections((prev) => ({ ...prev, [section]: { ...prev[section], ...patch } }))
+  }
 
   const [repertoire, setRepertoire] = useState([])
   const [members, setMembers] = useState([])
@@ -146,13 +160,13 @@ export default function ServiceForm() {
   }, [activeChurchId])
 
   const takenSongs = useMemo(
-    () => Object.values(songs).flat(),
-    [songs],
+    () => Object.values(sections).flatMap((s) => s.songs),
+    [sections],
   )
 
   const weekday = datos.starts_at
     ? new Intl.DateTimeFormat('es', { weekday: 'long' }).format(
-        new Date(datos.starts_at),
+        fechaInputALocal(datos.starts_at),
       )
     : ''
 
@@ -174,9 +188,7 @@ export default function ServiceForm() {
         church_id: activeChurchId,
         type: 'servicio',
         title: datos.title,
-        starts_at: new Date(datos.starts_at).toISOString(),
-        location: datos.location || null,
-        notes: datos.notes || null,
+        starts_at: fechaInputALocal(datos.starts_at).toISOString(),
         created_by: user.id,
       })
       .select('id')
@@ -188,17 +200,42 @@ export default function ServiceForm() {
       return
     }
 
-    // Canciones por momento
+    // Canciones y equipo, momento por momento
     const songRows = []
+    const asgRows = []
     let pos = 1
-    for (const section of SONG_ORDER) {
-      for (const songId of songs[section]) {
+    for (const section of SERVICE_SECTIONS) {
+      const s = sections[section]
+
+      for (const songId of s.songs) {
         songRows.push({
           event_id: ev.id,
           song_id: songId,
           section,
+          song_key: s.tono.trim() || null,
           position: pos++,
         })
+      }
+
+      for (const pid of s.cantantes) {
+        asgRows.push({
+          event_id: ev.id,
+          profile_id: pid,
+          role: CANTANTE_ROLE,
+          section,
+          status: 'invitado',
+        })
+      }
+      for (const i of INSTRUMENTS) {
+        for (const pid of s.inst[i]) {
+          asgRows.push({
+            event_id: ev.id,
+            profile_id: pid,
+            role: i,
+            section,
+            status: 'invitado',
+          })
+        }
       }
     }
     if (songRows.length) {
@@ -211,21 +248,6 @@ export default function ServiceForm() {
       }
     }
 
-    // Equipo: instrumentos + cantantes
-    const asgRows = []
-    for (const i of INSTRUMENTS) {
-      for (const pid of inst[i]) {
-        asgRows.push({ event_id: ev.id, profile_id: pid, role: i, status: 'invitado' })
-      }
-    }
-    for (const pid of cantantes) {
-      asgRows.push({
-        event_id: ev.id,
-        profile_id: pid,
-        role: CANTANTE_ROLE,
-        status: 'invitado',
-      })
-    }
     if (asgRows.length) {
       const { error: aErr } = await supabase
         .from('event_assignments')
@@ -262,96 +284,91 @@ export default function ServiceForm() {
             />
           </div>
           <div className="field">
-            <label>Fecha y hora {weekday && <span className={styles.weekday}>· {weekday}</span>}</label>
+            <label>Fecha {weekday && <span className={styles.weekday}>· {weekday}</span>}</label>
             <input
-              type="datetime-local"
+              type="date"
               value={datos.starts_at}
               onChange={(e) => setDatos({ ...datos, starts_at: e.target.value })}
               required
             />
           </div>
-          <div className="field">
-            <label>Lugar</label>
-            <input
-              value={datos.location}
-              onChange={(e) => setDatos({ ...datos, location: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="field">
-          <label>Notas</label>
-          <textarea
-            rows={2}
-            value={datos.notes}
-            onChange={(e) => setDatos({ ...datos, notes: e.target.value })}
-          />
         </div>
       </section>
 
-      {/* Canciones */}
-      <section className="card">
-        <h3>Canciones</h3>
-        {repertoire.length === 0 && (
-          <p className="muted">
-            No hay canciones en el repertorio.{' '}
-            <Link to="/canciones">Agregar canciones</Link>
-          </p>
-        )}
-        <div className={styles.songCols}>
-          {SONG_ORDER.map((section) => (
-            <div className={styles.block} key={section}>
-              <p className={styles.blockTitle}>
-                {section === 'Júbilo'
-                  ? 'Canciones de Júbilo'
-                  : section === 'Adoración'
-                    ? 'Adoración'
-                    : section}
-              </p>
-              <SongPicker
-                repertoire={repertoire}
-                taken={takenSongs}
-                selected={songs[section]}
-                onChange={(next) => setSongs({ ...songs, [section]: next })}
-              />
+      {(repertoire.length === 0 || members.length === 0) && (
+        <section className="card">
+          {repertoire.length === 0 && (
+            <p className="muted">
+              No hay canciones en el repertorio.{' '}
+              <Link to="/canciones">Agregar canciones</Link>
+            </p>
+          )}
+          {members.length === 0 && (
+            <p className="muted">
+              No hay miembros en la iglesia.{' '}
+              <Link to="/miembros">Agregar miembros</Link>
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* Momentos del servicio: canciones + cantante + músicos de cada uno */}
+      {SERVICE_SECTIONS.map((section, idx) => {
+        const s = sections[section]
+        return (
+          <section className={`card ${styles.momento}`} key={section}>
+            <div className={styles.momentoHead}>
+              <span className={styles.momentoNum}>{idx + 1}</span>
+              <h3>{section}</h3>
+              <label className={styles.tono}>
+                Tono
+                <input
+                  value={s.tono}
+                  onChange={(e) => updateSection(section, { tono: e.target.value })}
+                  placeholder="Ej: G"
+                />
+              </label>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Equipo */}
-      <section className="card">
-        <h3>Equipo</h3>
+            <p className={styles.blockTitle}>Canciones</p>
+            <SongPicker
+              repertoire={repertoire}
+              taken={takenSongs}
+              selected={s.songs}
+              onChange={(next) => updateSection(section, { songs: next })}
+            />
 
-        <p className={styles.blockTitle}>Instrumentos</p>
-        {INSTRUMENTS.map((i) => (
-          <div className={styles.instRow} key={i}>
-            <span className={styles.instName}>{i}</span>
+            <p className={styles.blockTitle} style={{ marginTop: '1.1rem' }}>
+              Cantante
+            </p>
             <MemberPicker
               members={members}
-              selected={inst[i]}
-              onChange={(next) => setInst({ ...inst, [i]: next })}
-              placeholder="Agregar músico…"
+              selected={s.cantantes}
+              onChange={(next) => updateSection(section, { cantantes: next })}
+              placeholder="Agregar cantante…"
             />
-          </div>
-        ))}
 
-        <p className={styles.blockTitle} style={{ marginTop: '1rem' }}>
-          Cantantes
-        </p>
-        <MemberPicker
-          members={members}
-          selected={cantantes}
-          onChange={setCantantes}
-          placeholder="Agregar cantante…"
-        />
-
-        {members.length === 0 && (
-          <p className="muted">
-            No hay miembros en la iglesia.{' '}
-            <Link to="/miembros">Agregar miembros</Link>
-          </p>
-        )}
-      </section>
+            <p className={styles.blockTitle} style={{ marginTop: '1.1rem' }}>
+              Músicos
+            </p>
+            <div className={styles.instGrid}>
+              {INSTRUMENTS.map((i) => (
+                <div className={styles.instRow} key={i}>
+                  <span className={styles.instName}>{i}</span>
+                  <MemberPicker
+                    members={members}
+                    selected={s.inst[i]}
+                    onChange={(next) =>
+                      updateSection(section, { inst: { ...s.inst, [i]: next } })
+                    }
+                    placeholder="Agregar músico…"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      })}
 
       {error && <p className="error">{error}</p>}
 

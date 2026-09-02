@@ -35,7 +35,7 @@
 .table th {
   font-size: 0.8rem;
   color: var(--color-text-muted);
-  background: #fafbfd;
+  background: var(--color-surface-alt);
 }
 
 .table tr:last-child td {

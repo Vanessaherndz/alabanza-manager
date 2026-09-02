@@ -220,7 +220,6 @@ export default function Dashboard() {
   const [equipo, setEquipo] = useState([])
   const [stats, setStats] = useState({
     servicios: 0,
-    ensayos: 0,
     canciones: 0,
     miembros: 0,
   })
@@ -266,18 +265,12 @@ export default function Dashboard() {
         setEquipo([])
       }
 
-      const [servicios, ensayos, canciones, miembros] = await Promise.all([
+      const [servicios, canciones, miembros] = await Promise.all([
         supabase
           .from('events')
           .select('id', { count: 'exact', head: true })
           .eq('church_id', activeChurchId)
           .eq('type', 'servicio')
-          .gte('starts_at', nowIso),
-        supabase
-          .from('events')
-          .select('id', { count: 'exact', head: true })
-          .eq('church_id', activeChurchId)
-          .eq('type', 'ensayo')
           .gte('starts_at', nowIso),
         supabase
           .from('songs')
@@ -291,7 +284,6 @@ export default function Dashboard() {
       if (!active) return
       setStats({
         servicios: servicios.count ?? 0,
-        ensayos: ensayos.count ?? 0,
         canciones: canciones.count ?? 0,
         miembros: miembros.count ?? 0,
       })
@@ -482,10 +474,6 @@ export default function Dashboard() {
         <Link to="/servicios" className="card">
           <span className={styles.statNum}>{stats.servicios}</span>
           <span className="muted">Servicios próximos</span>
-        </Link>
-        <Link to="/ensayos" className="card">
-          <span className={styles.statNum}>{stats.ensayos}</span>
-          <span className="muted">Ensayos próximos</span>
         </Link>
         <Link to="/canciones" className="card">
           <span className={styles.statNum}>{stats.canciones}</span>
