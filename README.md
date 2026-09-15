@@ -1,136 +1,198 @@
 # Alabanza Manager
 
-Base de una aplicación web para organizar, planificar y gestionar los servicios y
-ensayos de los equipos de alabanza en las iglesias.
+Aplicación web para organizar, planificar y gestionar los servicios de los
+equipos de alabanza en las iglesias.
 
-- **Frontend:** React 18 + Vite + React Router (JavaScript, CSS Modules)
-- **Backend:** Supabase (Postgres + Auth + RLS)
-- **Multi-iglesia:** cada iglesia es un espacio aislado; un usuario puede pertenecer
-  a varias con un rol distinto en cada una.
-- **Roles por iglesia:** `admin` (gestiona todo) y `user` (usuario base).
-- **Administrador del sistema:** rol global (`profiles.is_system_admin`) que ve y
-  gestiona todas las iglesias y todas las cuentas.
-- **Autenticación:** solo **usuario + contraseña**. No hay registro público: el
-  administrador crea cada cuenta desde **Miembros**. Por debajo, cada usuario se
-  mapea a un correo sintético `usuario@alabanza-manager.com` (nunca se muestra ni recibe
-  correo).
+- **Frontend:** React 18 + Vite + React Router (`frontend/`)
+- **Backend:** NestJS + Firebase Admin SDK (`backend/`)
+- **Base de datos y autenticación:** Firebase (Firestore + Firebase Auth)
+- **Arquitectura:** MVC — ver [Arquitectura](#arquitectura) más abajo
+- **Multi-iglesia:** cada iglesia es un espacio aislado; un usuario puede
+  pertenecer a varias con un rol distinto en cada una (`admin` / `user`).
+- **Administrador del sistema:** rol global (`users/{uid}.isSystemAdmin`) que
+  ve y gestiona todas las iglesias y todas las cuentas.
+- **Autenticación:** solo **usuario + contraseña**. No hay registro público:
+  el administrador crea cada cuenta desde **Miembros**. Por debajo, cada
+  usuario se mapea a un correo sintético `usuario@alabanza-manager.com`
+  (nunca se muestra ni recibe correo).
 
-## Puesta en marcha
+## Arquitectura
 
-### 1. Instalar dependencias
+El proyecto es un monorepo con dos aplicaciones independientes:
+
+```
+alabanza-manager/
+  backend/     API REST en NestJS (Controller -> Service -> Firestore)
+  frontend/    SPA en React que consume esa API + Firebase Auth
+  firebase.json, firestore.rules, firestore.indexes.json   (config de Firebase)
+```
+
+El frontend **nunca** toca Firestore directamente: solo usa el SDK de
+Firebase para el login (Firebase Auth) y llama al backend por HTTP para
+todo lo demás. El backend usa el **Admin SDK** de Firebase, que ignora las
+reglas de seguridad de Firestore — por eso `firestore.rules` niega todo el
+acceso de clientes (defensa en profundidad).
+
+Dentro del backend, cada módulo de NestJS sigue el patrón MVC:
+
+- **Controller** (`*.controller.ts`): recibe la petición HTTP, valida el
+  DTO y decide qué status/JSON devolver — es la capa de "vista" de una API.
+- **Service** (`*.service.ts`): la lógica de negocio; es quien lee y
+  escribe en Firestore.
+- **Modelo**: los documentos de Firestore, con la forma que describen los
+  DTOs (`dto/*.ts`) y las interfaces de cada `*.service.ts`.
+
+Los guards (`common/guards/firebase-auth.guard.ts`) y servicios compartidos
+(`common/church-access.service.ts`, `common/profiles.service.ts`) resuelven
+autenticación y permisos por iglesia antes de que un controller llegue a
+tocar datos.
+
+## Modelo de datos (Firestore)
+
+| Colección                          | Descripción                                                        |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| `users/{uid}`                       | Perfil visible (`username`, `fullName`, `phone`, `isSystemAdmin`)  |
+| `churches/{id}`                     | La iglesia (tenant)                                                |
+| `memberships/{churchId}_{uid}`      | Pertenencia + rol (`admin` / `user`) de un usuario en una iglesia  |
+| `teams/{id}`                        | Equipos de alabanza de una iglesia                                 |
+| `songs/{id}`                        | Repertorio de la iglesia                                           |
+| `events/{id}`                       | Servicios (`type: 'servicio'`)                                     |
+| `events/{id}/songs/{id}`            | Setlist del servicio; `section` = momento (Bienvenida, Adoración…) |
+| `events/{id}/assignments/{id}`      | Quién participa y su estado (`invitado` / `confirmado` / `rechazado`) |
+
+La cuenta de autenticación en sí (correo sintético + contraseña) vive en
+Firebase Auth, no en Firestore; `users/{uid}` solo guarda el perfil.
+
+## Conectar el proyecto a Firebase
+
+### 1. Crear el proyecto
+
+1. Ve a <https://console.firebase.google.com> y crea un proyecto nuevo.
+2. En **Build → Firestore Database**, crea la base en **modo producción**
+   (las reglas ya vienen bloqueadas en `firestore.rules`, así que "producción"
+   es correcto incluso en desarrollo).
+3. En **Build → Authentication → Sign-in method**, habilita el proveedor
+   **Correo electrónico/contraseña**. No hace falta activar verificación de
+   correo (los correos son sintéticos).
+
+### 2. Credenciales para el backend (Admin SDK)
+
+1. **Configuración del proyecto → Cuentas de servicio → Generar nueva clave
+   privada**. Descarga el JSON.
+2. Copia `backend/.env.example` a `backend/.env` y completa con los datos
+   del JSON:
+   - `FIREBASE_PROJECT_ID` = `project_id`
+   - `FIREBASE_CLIENT_EMAIL` = `client_email`
+   - `FIREBASE_PRIVATE_KEY` = `private_key` (pégala tal cual, entre comillas)
+3. Ajusta `USERNAME_DOMAIN` si quieres otro dominio sintético y
+   `FRONTEND_ORIGIN` con la URL del frontend (para CORS).
+
+**No subas ese JSON ni el `.env` al repositorio** (ya están en `.gitignore`).
+
+### 3. Credenciales para el frontend (Web SDK)
+
+1. **Configuración del proyecto → Tus apps → Agregar app → Web** (el ícono
+   `</>`). No hace falta Firebase Hosting para esto.
+2. Copia el objeto `firebaseConfig` que te muestra.
+3. Copia `frontend/.env.example` a `frontend/.env` y completa `apiKey`,
+   `authDomain` y `projectId`. Estos valores **no son secretos** (identifican
+   el proyecto, no dan acceso privilegiado); es normal que viajen al navegador.
+4. `VITE_API_URL` debe apuntar al backend (`http://localhost:3000` en local).
+
+### 4. Instalar y ejecutar
 
 ```bash
+# Backend
+cd backend
 npm install
+npm run start:dev
 ```
-
-### 2. Crear el proyecto de Supabase
-
-1. Crea un proyecto en <https://supabase.com>.
-2. En **SQL Editor**, pega y ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql).
-   Si ya lo habías ejecutado antes, corre además
-   [`supabase/patch_01_username_system_admin.sql`](supabase/patch_01_username_system_admin.sql).
-3. En **Project Settings → API** copia la _Project URL_ y la _anon public key_.
-4. **Obligatorio.** En **Authentication → Providers → Email** desactiva **"Confirm email"**
-   (los correos son sintéticos y no reciben mensajes) y deja activado
-   **"Allow new users to sign up"** (el alta de cuentas del admin lo usa por debajo).
-
-### 3. Variables de entorno
 
 ```bash
-cp .env.example .env
-```
-
-Edita `.env`:
-
-```
-VITE_SUPABASE_URL=https://TU-PROYECTO.supabase.co
-VITE_SUPABASE_ANON_KEY=TU_ANON_KEY
-```
-
-### 4. Ejecutar
-
-```bash
+# Frontend (en otra terminal)
+cd frontend
+npm install
 npm run dev
 ```
 
 Abre <http://localhost:5173>.
 
+### 5. Crear el primer administrador
+
+No hay registro público, así que la primera cuenta se crea con un script:
+
+```bash
+cd backend
+# En backend/.env define SEED_ADMIN_USERNAME / SEED_ADMIN_PASSWORD / SEED_ADMIN_FULL_NAME
+npm run seed:admin
+```
+
+Esto crea (o actualiza) la cuenta en Firebase Auth y la marca como
+administrador del sistema en Firestore. Inicia sesión en `/login` con ese
+usuario y contraseña.
+
+### 6. (Opcional) Desplegar reglas e índices de Firestore
+
+```bash
+npm install -g firebase-tools   # una sola vez
+firebase login
+firebase use --add              # elige tu proyecto
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+No es obligatorio para desarrollar (Firestore te deja crear los índices
+compuestos desde el link que aparece en el error la primera vez que corres
+una consulta que los necesita), pero es la forma reproducible de hacerlo.
+
 ## Primer uso
 
-1. Crea la primera cuenta en **Authentication → Users → Add user** (marca
-   _Auto Confirm User_) y ejecuta `supabase/patch_01_username_system_admin.sql`:
-   deja a ese usuario como **administrador del sistema** (paso 7 del patch) y le
-   asigna un `username`.
-2. Inicia sesión en `/login` con ese usuario y contraseña.
-3. En el panel, crea tu iglesia: pasas a ser su **administrador**.
-4. Como admin: crea equipos, canciones, servicios y ensayos. En **Miembros**
-   creas las cuentas del equipo (usuario + contraseña) y les pasas las credenciales.
-5. Un **usuario** ve la programación, los setlists y marca su disponibilidad.
+1. Inicia sesión con la cuenta creada por `npm run seed:admin`.
+2. En el panel, crea tu iglesia: pasas a ser su **administrador**.
+3. Como admin: crea equipos, canciones y servicios. En **Miembros** creas
+   las cuentas del equipo (usuario + contraseña) y les compartes las
+   credenciales.
+4. Un **usuario** ve la programación, los setlists y confirma su
+   participación en cada servicio.
 
 ## Estructura
 
 ```
-src/
-  lib/
-    supabaseClient.js        Cliente de Supabase (lee las env VITE_*)
-    adminClient.js           Cliente efímero para crear cuentas sin cerrar sesión
-    username.js              usuario <-> correo sintético (usuario@alabanza-manager.com)
-    serviceSections.js       Momentos del servicio (Bienvenida, Adoración, Júbilo, Despedida)
-    serviceRoles.js          Instrumentos fijos (Piano, Bajo, Guitarra eléctrica, Batería) + Cantante
-  context/
-    AuthContext.jsx          Sesión + perfil: signIn / createAccount / signOut
-    ChurchContext.jsx        Iglesia activa, membresías y rol
-  components/
-    ProtectedRoute.jsx       Exige sesión
-    RoleRoute.jsx            Exige rol (admin de iglesia o admin del sistema)
-    Layout/                   Barra lateral + selector de iglesia
-    EventManager.jsx         CRUD compartido de servicios / ensayos
-  pages/
-    Login                    Entrar con usuario + contraseña
-    Dashboard                Próximo servicio, calendario, setlist y equipo
-    Services / Rehearsals    Eventos (type = servicio | ensayo)
-    ServiceForm              /servicios/nuevo – crea servicio con canciones (Júbilo/
-                             Adoración/…) e instrumentos + cantantes en un solo paso
-    ServiceDetail            /servicios/:id – alabanzas por momento + equipo asignado
-    Teams                    Equipos de alabanza
-    Songs                    Repertorio (CRUD completo de ejemplo)
-    Availability             Disponibilidad propia por fecha
-    Members                  Gestión de miembros y roles (solo admin)
-supabase/
-  schema.sql                 Tablas, tipos, funciones RPC y políticas RLS
-  patch_01_username_system_admin.sql   Migración: usuario + admin del sistema
-  patch_02_service_sections.sql        Migración: event_songs.section (momento)
+backend/
+  src/
+    firebase/          Inicializa el Admin SDK (Auth + Firestore) como módulo global
+    common/             Guard de autenticación, decorador @CurrentUser,
+                         ChurchAccessService (roles por iglesia), ProfilesService
+    auth/               GET /auth/me
+    churches/           POST/GET /churches, GET /churches/:id
+    members/            CRUD de miembros de una iglesia (crear cuenta, vincular, rol)
+    teams/              CRUD de equipos
+    songs/              CRUD del repertorio
+    events/             Servicios: setlist y asignaciones
+    dashboard/          Resumen del panel y calendario mensual
+    scripts/seed-admin.ts   Crea el primer administrador del sistema
+frontend/
+  src/
+    lib/
+      firebaseClient.js  Inicializa Firebase Auth en el navegador
+      apiClient.js       fetch con el ID token de Firebase adjunto
+      username.js        usuario <-> correo sintético
+      serviceSections.js Momentos del servicio
+      serviceRoles.js    Instrumentos fijos + Cantante
+    context/
+      AuthContext.jsx    Sesión (Firebase Auth) + perfil (GET /auth/me)
+      ChurchContext.jsx  Iglesia activa y rol (API del backend)
+    components/
+      ProtectedRoute.jsx Exige sesión
+      RoleRoute.jsx      Exige rol (admin de iglesia o admin del sistema)
+      Layout/            Barra lateral + selector de iglesia
+      EventManager.jsx   Lista de servicios
+    pages/
+      Login, Dashboard, Services/ServiceForm/ServiceDetail, Teams, Songs, Members
 ```
-
-## Modelo de datos
-
-| Tabla                | Descripción                                             |
-| -------------------- | ------------------------------------------------------- |
-| `profiles`           | 1:1 con `auth.users`; `username` visible + `is_system_admin` |
-| `churches`           | La iglesia (tenant)                                    |
-| `church_members`     | Pertenencia + rol (`admin` / `user`) por iglesia       |
-| `teams`              | Equipos de alabanza de una iglesia                     |
-| `team_members`       | Integrantes de cada equipo y sus roles/instrumentos    |
-| `songs`              | Repertorio de la iglesia                               |
-| `events`             | Servicios y ensayos (`type`), un ensayo puede colgar de un servicio |
-| `event_songs`        | Setlist de cada evento; `section` = momento del servicio |
-| `event_assignments`  | Quién participa en cada evento y su confirmación       |
-| `availability`       | Disponibilidad de cada integrante por fecha            |
-
-### Funciones RPC
-
-- `create_church(_name, _city)` – crea la iglesia y te deja como `admin`.
-- `add_member_by_username(_church_id, _username, _role)` – agrega/actualiza un miembro (solo admin).
-- `is_system_admin()` – `true` si el usuario actual es administrador del sistema.
-
-Toda la seguridad se aplica con **RLS**: los miembros solo ven los datos de sus
-iglesias y solo los `admin` pueden crear/editar/borrar.
 
 ## Siguientes pasos sugeridos
 
-- Pantalla de detalle de evento: armar setlist (`event_songs`) y asignar personas
-  (`event_assignments`) con arrastrar y soltar.
-- Vista de calendario mensual.
+- Vista de calendario con rango de varios meses.
 - Notificaciones (correo / push) al confirmar asignaciones.
-- Invitaciones para usuarios que aún no tienen cuenta (tabla `invitations`).
-```
+- Invitaciones para usuarios que aún no tienen cuenta.
+- Tests end-to-end del flujo servicio → setlist → asignaciones.
