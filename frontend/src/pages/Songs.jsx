@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { api } from '../lib/apiClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
-import { SONG_CATEGORIES } from '../lib/songCategories.js'
 import BackToMenu from '../components/BackToMenu.jsx'
 import styles from './Songs.module.css'
 
@@ -10,6 +9,7 @@ const EMPTY = { title: '', songKey: '', referenceUrl: '', category: '' }
 
 export default function Songs() {
   const { activeChurchId, isAdmin } = useChurch()
+  const [songCategories, setSongCategories] = useState([])
   const [songs, setSongs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -17,23 +17,33 @@ export default function Songs() {
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState(SONG_CATEGORIES[0])
+  const [tab, setTab] = useState('')
 
   const load = useCallback(async () => {
-    if (!activeChurchId) return
     setLoading(true)
     try {
-      const data = await api.get(`/churches/${activeChurchId}/songs`)
+      const data = await api.get('/songs')
       setSongs(data ?? [])
     } catch (err) {
       setError(err.message)
     }
     setLoading(false)
-  }, [activeChurchId])
+  }, [])
 
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    api
+      .get('/song-categories')
+      .then((data) => setSongCategories(data ?? []))
+      .catch((err) => setError(err.message))
+  }, [])
+
+  useEffect(() => {
+    if (!tab && songCategories.length > 0) setTab(songCategories[0])
+  }, [songCategories, tab])
 
   function resetForm() {
     setForm(EMPTY)
@@ -54,7 +64,7 @@ export default function Songs() {
       if (editingId) {
         await api.patch(`/songs/${editingId}`, payload)
       } else {
-        await api.post(`/churches/${activeChurchId}/songs`, payload)
+        await api.post('/songs', payload)
       }
       resetForm()
       load()
@@ -115,7 +125,7 @@ export default function Songs() {
           </div>
 
           <div className={styles.tabs}>
-            {SONG_CATEGORIES.map((c, i) => (
+            {songCategories.map((c, i) => (
               <button
                 key={c}
                 type="button"
@@ -217,7 +227,7 @@ export default function Songs() {
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
                   <option value="">Sin clasificar</option>
-                  {SONG_CATEGORIES.map((c) => (
+                  {songCategories.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>

@@ -1,19 +1,11 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  NotFoundException,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { CurrentUser } from '../common/decorators/current-user.decorator'
 import { RequestUser } from '../common/interfaces/authenticated-request'
 import { ChurchAccessService } from '../common/church-access.service'
 import { SongsService } from './songs.service'
 import { CreateSongDto } from './dto/create-song.dto'
 import { UpdateSongDto } from './dto/update-song.dto'
+import { UpdateSongCategoriesDto } from './dto/update-song-categories.dto'
 
 @Controller()
 export class SongsController {
@@ -22,20 +14,31 @@ export class SongsController {
     private readonly access: ChurchAccessService,
   ) {}
 
-  @Get('churches/:churchId/songs')
-  async list(@CurrentUser() user: RequestUser, @Param('churchId') churchId: string) {
-    await this.access.assertMember(user.uid, churchId)
-    return this.songs.list(churchId)
+  @Get('song-categories')
+  async getCategories(@CurrentUser() user: RequestUser) {
+    await this.access.assertAnyChurchMember(user.uid)
+    return this.songs.getCategories()
   }
 
-  @Post('churches/:churchId/songs')
-  async create(
+  @Patch('song-categories')
+  async updateCategories(
     @CurrentUser() user: RequestUser,
-    @Param('churchId') churchId: string,
-    @Body() dto: CreateSongDto,
+    @Body() dto: UpdateSongCategoriesDto,
   ) {
-    await this.access.assertAdmin(user.uid, churchId)
-    return this.songs.create(churchId, user.uid, dto)
+    await this.access.assertAnyChurchAdmin(user.uid)
+    return this.songs.updateCategories(dto.categories)
+  }
+
+  @Get('songs')
+  async list(@CurrentUser() user: RequestUser) {
+    await this.access.assertAnyChurchMember(user.uid)
+    return this.songs.list()
+  }
+
+  @Post('songs')
+  async create(@CurrentUser() user: RequestUser, @Body() dto: CreateSongDto) {
+    await this.access.assertAnyChurchAdmin(user.uid)
+    return this.songs.create(user.uid, dto)
   }
 
   @Patch('songs/:id')
@@ -44,17 +47,13 @@ export class SongsController {
     @Param('id') id: string,
     @Body() dto: UpdateSongDto,
   ) {
-    const churchId = await this.songs.getChurchId(id)
-    if (!churchId) throw new NotFoundException('Cancion no encontrada')
-    await this.access.assertAdmin(user.uid, churchId)
+    await this.access.assertAnyChurchAdmin(user.uid)
     return this.songs.update(id, dto)
   }
 
   @Delete('songs/:id')
   async remove(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    const churchId = await this.songs.getChurchId(id)
-    if (!churchId) throw new NotFoundException('Cancion no encontrada')
-    await this.access.assertAdmin(user.uid, churchId)
+    await this.access.assertAnyChurchAdmin(user.uid)
     await this.songs.remove(id)
     return { ok: true }
   }

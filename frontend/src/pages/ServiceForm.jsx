@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/apiClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
-import { INSTRUMENTS, VOICE_LEAD_ROLE, CHOIR_ROLE } from '../lib/serviceRoles.js'
+import { buildInstrumentOptions, VOICE_LEAD_ROLE, CHOIR_ROLE } from '../lib/serviceRoles.js'
 import styles from './ServiceForm.module.css'
 
 function nombreDe(p) {
@@ -72,7 +72,7 @@ function MemberPicker({ members, selected, onChange, placeholder }) {
 }
 
 /** Selector de músicos: cada persona agregada trae un instrumento editable. */
-function MusicianPicker({ members, selected, onChange }) {
+function MusicianPicker({ members, selected, onChange, instruments }) {
   const disponibles = members.filter((m) => !selected.some((s) => s.uid === m.uid))
   return (
     <div>
@@ -82,7 +82,7 @@ function MusicianPicker({ members, selected, onChange }) {
           onChange={(e) => {
             const m = members.find((x) => x.uid === e.target.value)
             if (!m) return
-            onChange([...selected, { uid: m.uid, instrument: m.instrument || INSTRUMENTS[0] }])
+            onChange([...selected, { uid: m.uid, instrument: m.instrument || instruments[0] }])
           }}
         >
           <option value="">Agregar músico…</option>
@@ -111,7 +111,7 @@ function MusicianPicker({ members, selected, onChange }) {
                     )
                   }
                 >
-                  {INSTRUMENTS.map((i) => (
+                  {instruments.map((i) => (
                     <option key={i} value={i}>
                       {i}
                     </option>
@@ -215,7 +215,8 @@ function SongPicker({ repertoire, taken, selected, onChange, onCreate }) {
 }
 
 export default function ServiceForm() {
-  const { activeChurchId, isAdmin } = useChurch()
+  const { activeChurchId, activeChurch, isAdmin } = useChurch()
+  const instruments = buildInstrumentOptions(activeChurch?.settings?.instruments)
   const navigate = useNavigate()
 
   const [datos, setDatos] = useState({ title: '', starts_at: '' })
@@ -241,7 +242,7 @@ export default function ServiceForm() {
   useEffect(() => {
     if (!activeChurchId) return
     api
-      .get(`/churches/${activeChurchId}/songs`)
+      .get('/songs')
       .then((data) => setRepertoire(data ?? []))
       .catch((err) => setError(err.message))
     api
@@ -253,7 +254,7 @@ export default function ServiceForm() {
   async function handleCreateSong(sectionKey, title) {
     setError('')
     try {
-      const song = await api.post(`/churches/${activeChurchId}/songs`, { title })
+      const song = await api.post('/songs', { title })
       setRepertoire((prev) => [...prev, song].sort((a, b) => a.title.localeCompare(b.title)))
       setSections((prev) =>
         prev.map((s) =>
@@ -441,6 +442,7 @@ export default function ServiceForm() {
             members={members}
             selected={s.musicians}
             onChange={(next) => updateSection(s.key, { musicians: next })}
+            instruments={instruments}
           />
         </section>
       ))}

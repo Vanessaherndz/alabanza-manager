@@ -18,11 +18,11 @@
       ]
     },
     {
-      "collectionGroup": "songs",
+      "collectionGroup": "memberships",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "churchId", "order": "ASCENDING" },
-        { "fieldPath": "title", "order": "ASCENDING" }
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "role", "order": "ASCENDING" }
       ]
     },
     {

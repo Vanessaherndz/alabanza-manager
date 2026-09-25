@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/apiClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
-import { INSTRUMENTS } from '../lib/serviceRoles.js'
+import { buildInstrumentOptions } from '../lib/serviceRoles.js'
 import BackToMenu from '../components/BackToMenu.jsx'
 import styles from './Songs.module.css'
 
@@ -10,7 +10,8 @@ const EMPTY_NEW = { fullName: '', instrument: '' }
 
 export default function Members() {
   const { user } = useAuth()
-  const { activeChurchId } = useChurch()
+  const { activeChurchId, activeChurch } = useChurch()
+  const instruments = buildInstrumentOptions(activeChurch?.settings?.instruments)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,7 +102,7 @@ export default function Members() {
               onChange={(e) => setNuevo({ ...nuevo, instrument: e.target.value })}
             >
               <option value="">Ninguno / voz</option>
-              {INSTRUMENTS.map((i) => (
+              {instruments.map((i) => (
                 <option key={i} value={i}>
                   {i}
                 </option>

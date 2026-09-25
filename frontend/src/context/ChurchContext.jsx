@@ -61,6 +61,18 @@ export function ChurchProvider({ children }) {
     [loadChurches, selectChurch],
   )
 
+  const updateChurchSettings = useCallback(
+    async (settings) => {
+      if (!activeChurchId) return null
+      const updated = await api.patch(`/churches/${activeChurchId}/settings`, settings)
+      setChurches((prev) =>
+        prev.map((c) => (c.id === activeChurchId ? { ...c, settings: updated } : c)),
+      )
+      return updated
+    },
+    [activeChurchId],
+  )
+
   const activeChurch = churches.find((c) => c.id === activeChurchId) ?? null
 
   const value = useMemo(
@@ -74,9 +86,19 @@ export function ChurchProvider({ children }) {
       isAdmin: activeChurch?.role === 'admin',
       selectChurch,
       createChurch,
+      updateChurchSettings,
       refresh: loadChurches,
     }),
-    [loading, churches, activeChurchId, activeChurch, selectChurch, createChurch, loadChurches],
+    [
+      loading,
+      churches,
+      activeChurchId,
+      activeChurch,
+      selectChurch,
+      createChurch,
+      updateChurchSettings,
+      loadChurches,
+    ],
   )
 
   return <ChurchContext.Provider value={value}>{children}</ChurchContext.Provider>

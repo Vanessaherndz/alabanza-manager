@@ -66,6 +66,37 @@ export class ChurchAccessService {
     await this.db.collection('memberships').doc(this.membershipId(churchId, uid)).delete()
   }
 
+  // Para recursos que ya no son por iglesia (ej: el repertorio compartido):
+  // alcanza con ser miembro/admin de alguna iglesia, sin importar cual.
+  async isAnyChurchMember(uid: string): Promise<boolean> {
+    if (await this.profiles.isSystemAdmin(uid)) return true
+    const snap = await this.db.collection('memberships').where('uid', '==', uid).limit(1).get()
+    return !snap.empty
+  }
+
+  async assertAnyChurchMember(uid: string): Promise<void> {
+    if (!(await this.isAnyChurchMember(uid))) {
+      throw new ForbiddenException('Debes pertenecer a una iglesia para hacer esto')
+    }
+  }
+
+  async isAnyChurchAdmin(uid: string): Promise<boolean> {
+    if (await this.profiles.isSystemAdmin(uid)) return true
+    const snap = await this.db
+      .collection('memberships')
+      .where('uid', '==', uid)
+      .where('role', '==', 'admin')
+      .limit(1)
+      .get()
+    return !snap.empty
+  }
+
+  async assertAnyChurchAdmin(uid: string): Promise<void> {
+    if (!(await this.isAnyChurchAdmin(uid))) {
+      throw new ForbiddenException('Solo un administrador puede hacer esto')
+    }
+  }
+
   async listChurchIdsForUser(uid: string): Promise<string[]> {
     const snap = await this.db.collection('memberships').where('uid', '==', uid).get()
     return snap.docs.map((d) => d.data().churchId as string)

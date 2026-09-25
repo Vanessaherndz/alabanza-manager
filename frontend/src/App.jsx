@@ -10,6 +10,8 @@ import ServiceDetail from './pages/ServiceDetail.jsx'
 import Teams from './pages/Teams.jsx'
 import Songs from './pages/Songs.jsx'
 import Members from './pages/Members.jsx'
+import NewChurch from './pages/NewChurch.jsx'
+import ChurchSettings from './pages/ChurchSettings.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -25,6 +27,15 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="iglesias/nueva" element={<NewChurch />} />
+        <Route
+          path="configuracion"
+          element={
+            <RoleRoute allow={['admin']}>
+              <ChurchSettings />
+            </RoleRoute>
+          }
+        />
         <Route path="servicios" element={<Services />} />
         <Route path="servicios/nuevo" element={<ServiceForm />} />
         <Route path="servicios/:id" element={<ServiceDetail />} />

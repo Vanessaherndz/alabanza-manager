@@ -3,8 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { MapPin } from 'lucide-react'
 import { api } from '../lib/apiClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
-import { ROLE_OPTIONS, VOICE_LEAD_ROLE, CHOIR_ROLE } from '../lib/serviceRoles.js'
-import { groupBySection } from '../lib/groupBySection.js'
+import { buildRoleOptions } from '../lib/serviceRoles.js'
+import ServiceSummaryTable from '../components/ServiceSummaryTable.jsx'
 import styles from './ServiceDetail.module.css'
 
 function fechaHora(iso) {
@@ -22,45 +22,10 @@ function nombreDe(profile) {
   return profile?.fullName || profile?.username || '—'
 }
 
-const STATUS_META = {
-  invitado: { label: 'Pendiente', cls: 'stPending' },
-  confirmado: { label: 'Confirmada', cls: 'stConfirm' },
-  rechazado: { label: 'Rechazada', cls: 'stReject' },
-}
-
-function nextStatus(status) {
-  if (status === 'invitado') return 'confirmado'
-  if (status === 'confirmado') return 'rechazado'
-  return 'invitado'
-}
-
-/** Nombre + estado (punto cliqueable) + rol + quitar, para una celda de la hoja. */
-function TeamChip({ a, tag, isAdmin, onRemove, onCycleStatus }) {
-  const meta = STATUS_META[a.status] ?? { label: a.status, cls: '' }
-  return (
-    <div className={styles.cellItem}>
-      <button
-        type="button"
-        className={`${styles.statusDot} ${styles[meta.cls] ?? ''}`}
-        title={`Estado: ${meta.label}${isAdmin ? ' (clic para cambiar)' : ''}`}
-        aria-label={`Estado: ${meta.label}`}
-        disabled={!isAdmin}
-        onClick={() => onCycleStatus(a.id, nextStatus(a.status))}
-      />
-      <span>{nombreDe(a.profile)}</span>
-      <span className={styles.cellTag}>{tag}</span>
-      {isAdmin && (
-        <button className={styles.miniRemove} onClick={() => onRemove(a.id)} aria-label="Quitar">
-          ×
-        </button>
-      )}
-    </div>
-  )
-}
-
 export default function ServiceDetail() {
   const { id } = useParams()
-  const { isAdmin } = useChurch()
+  const { isAdmin, activeChurch } = useChurch()
+  const roleOptions = buildRoleOptions(activeChurch?.settings?.instruments)
 
   const [event, setEvent] = useState(null)
   const [notFound, setNotFound] = useState(false)
@@ -72,7 +37,13 @@ export default function ServiceDetail() {
   const [members, setMembers] = useState([]) // miembros de la iglesia
 
   const [newSong, setNewSong] = useState({ songId: '', section: '', songKey: '' })
-  const [newMember, setNewMember] = useState({ uid: '', role: 'Piano', roleOtro: '', section: '' })
+  const [newMember, setNewMember] = useState({ uid: '', role: '', roleOtro: '', section: '' })
+
+  useEffect(() => {
+    if (!newMember.role && roleOptions.length > 0) {
+      setNewMember((prev) => ({ ...prev, role: roleOptions[0] }))
+    }
+  }, [roleOptions, newMember.role])
 
   const loadEvent = useCallback(async () => {
     try {
@@ -95,7 +66,7 @@ export default function ServiceDetail() {
   useEffect(() => {
     if (!churchId) return
     api
-      .get(`/churches/${churchId}/songs`)
+      .get('/songs')
       .then((data) => setRepertoire(data ?? []))
       .catch((err) => setError(err.message))
     api
@@ -190,43 +161,11 @@ export default function ServiceDetail() {
     (s) => !songs.some((es) => es.song?.id === s.id),
   )
 
-  // Las secciones tienen nombre libre: se agrupan en el orden en que aparecen
-  // (que ya viene dado por la posición de cada alabanza en el setlist).
-  const grupos = groupBySection(songs)
-
   const existingSections = [
     ...new Set(
       [...songs.map((es) => es.section), ...team.map((a) => a.section)].filter(Boolean),
     ),
   ]
-
-  // Equipo agrupado por sección, en el mismo orden que las alabanzas; dentro
-  // de cada sección: voz principal, luego coro, luego el resto (músicos).
-  function ordenRol(role) {
-    if (role === VOICE_LEAD_ROLE) return 0
-    if (role === CHOIR_ROLE) return 1
-    return 2
-  }
-  const teamGrupos = groupBySection(team, grupos.map((g) => g.name)).map((g) => ({
-    ...g,
-    items: [...g.items].sort((a, b) => ordenRol(a.role) - ordenRol(b.role)),
-  }))
-
-  // Resumen tipo "hoja de servicio": una fila por sección, con Voz,
-  // Alabanzas y Músicos como columnas.
-  const sectionRows = [
-    ...new Set([...grupos.map((g) => g.name), ...teamGrupos.map((g) => g.name)]),
-  ].map((name) => {
-    const sectionSongs = grupos.find((g) => g.name === name)?.items ?? []
-    const sectionTeam = teamGrupos.find((g) => g.name === name)?.items ?? []
-    return {
-      name,
-      songs: sectionSongs,
-      vocalLead: sectionTeam.find((a) => a.role === VOICE_LEAD_ROLE) ?? null,
-      choir: sectionTeam.filter((a) => a.role === CHOIR_ROLE),
-      musicians: sectionTeam.filter((a) => a.role !== VOICE_LEAD_ROLE && a.role !== CHOIR_ROLE),
-    }
-  })
 
   return (
     <div className={styles.page}>
@@ -261,87 +200,14 @@ export default function ServiceDetail() {
       {/* -------------------- Resumen (sección · voz · alabanzas · músicos) -------------------- */}
       <section className="card">
         <h3>Hoja del servicio</h3>
-
-        {sectionRows.length === 0 ? (
-          <p className="muted">Aún no hay secciones configuradas en este servicio.</p>
-        ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.summaryTable}>
-              <thead>
-                <tr>
-                  <th>Sección</th>
-                  <th>Voz</th>
-                  <th>Alabanzas</th>
-                  <th>Músicos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sectionRows.map((row) => (
-                  <tr key={row.name}>
-                    <td className={styles.sectionCell}>{row.name}</td>
-                    <td>
-                      {!row.vocalLead && row.choir.length === 0 && (
-                        <span className="muted">—</span>
-                      )}
-                      {row.vocalLead && (
-                        <TeamChip
-                          a={row.vocalLead}
-                          tag="Voz principal"
-                          isAdmin={isAdmin}
-                          onRemove={removeMember}
-                          onCycleStatus={setMemberStatus}
-                        />
-                      )}
-                      {row.choir.map((a) => (
-                        <TeamChip
-                          key={a.id}
-                          a={a}
-                          tag="Coro"
-                          isAdmin={isAdmin}
-                          onRemove={removeMember}
-                          onCycleStatus={setMemberStatus}
-                        />
-                      ))}
-                    </td>
-                    <td>
-                      {row.songs.length === 0 && <span className="muted">—</span>}
-                      {row.songs.map((es) => (
-                        <div className={styles.cellItem} key={es.id}>
-                          <span>{es.song?.title ?? '—'}</span>
-                          <span className={styles.cellTag}>
-                            {es.songKey || es.song?.songKey || '—'}
-                          </span>
-                          {isAdmin && (
-                            <button
-                              className={styles.miniRemove}
-                              onClick={() => removeSong(es.id)}
-                              aria-label="Quitar"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </td>
-                    <td>
-                      {row.musicians.length === 0 && <span className="muted">—</span>}
-                      {row.musicians.map((a) => (
-                        <TeamChip
-                          key={a.id}
-                          a={a}
-                          tag={a.role || 'Sin rol'}
-                          isAdmin={isAdmin}
-                          onRemove={removeMember}
-                          onCycleStatus={setMemberStatus}
-                        />
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ServiceSummaryTable
+          songs={songs}
+          team={team}
+          isAdmin={isAdmin}
+          onRemoveSong={removeSong}
+          onRemoveMember={removeMember}
+          onCycleStatus={setMemberStatus}
+        />
       </section>
 
       {/* -------------------- Agregar alabanza -------------------- */}
@@ -439,7 +305,7 @@ export default function ServiceDetail() {
                     setNewMember({ ...newMember, role: e.target.value })
                   }
                 >
-                  {ROLE_OPTIONS.map((r) => (
+                  {roleOptions.map((r) => (
                     <option key={r} value={r}>
                       {r}
                     </option>

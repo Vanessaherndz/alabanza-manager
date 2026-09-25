@@ -45,6 +45,10 @@ export default function Layout() {
             activeChurch && <span className={styles.churchName}>{activeChurch.name}</span>
           )}
 
+          <Link to="/iglesias/nueva" className="btn btn-secondary" title="Crear otra iglesia">
+            + Iglesia
+          </Link>
+
           <div className={styles.userChip}>
             <span className={styles.userAvatar}>
               {iniciales(profile?.fullName || profile?.username)}

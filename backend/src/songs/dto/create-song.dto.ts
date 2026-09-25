@@ -1,5 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUrl, MinLength } from 'class-validator'
-import { SONG_CATEGORIES } from './song-categories'
+import { IsOptional, IsString, IsUrl, MinLength } from 'class-validator'
 
 export class CreateSongDto {
   @IsString()
@@ -14,7 +13,8 @@ export class CreateSongDto {
   @IsUrl()
   referenceUrl?: string
 
+  // Validada contra la lista global de categorias (ver SongsService).
   @IsOptional()
-  @IsIn(SONG_CATEGORIES)
+  @IsString()
   category?: string
 }

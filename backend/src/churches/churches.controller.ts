@@ -1,9 +1,10 @@
-import { Body, Controller, Get, NotFoundException, Param, Post } from '@nestjs/common'
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post } from '@nestjs/common'
 import { CurrentUser } from '../common/decorators/current-user.decorator'
 import { RequestUser } from '../common/interfaces/authenticated-request'
 import { ChurchAccessService } from '../common/church-access.service'
 import { ChurchesService } from './churches.service'
 import { CreateChurchDto } from './dto/create-church.dto'
+import { UpdateChurchSettingsDto } from './dto/update-church-settings.dto'
 
 @Controller('churches')
 export class ChurchesController {
@@ -28,5 +29,15 @@ export class ChurchesController {
     const church = await this.churches.getById(id)
     if (!church) throw new NotFoundException('Iglesia no encontrada')
     return church
+  }
+
+  @Patch(':id/settings')
+  async updateSettings(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateChurchSettingsDto,
+  ) {
+    await this.access.assertAdmin(user.uid, id)
+    return this.churches.updateSettings(id, dto)
   }
 }

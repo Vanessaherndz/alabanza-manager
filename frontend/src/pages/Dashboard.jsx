@@ -1,61 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Church, Music, Users } from 'lucide-react'
+import { Church, Music, Settings, Users } from 'lucide-react'
 import { api } from '../lib/apiClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
+import CreateChurchForm from '../components/CreateChurchForm.jsx'
 import styles from './Dashboard.module.css'
-
-function CreateChurchCard({ onCreated }) {
-  const { createChurch } = useChurch()
-  const [name, setName] = useState('')
-  const [city, setCity] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setBusy(true)
-    try {
-      await createChurch({ name, city })
-      setName('')
-      setCity('')
-      onCreated()
-    } catch (err) {
-      setError(err.message)
-    }
-    setBusy(false)
-  }
-
-  return (
-    <form className="card" onSubmit={handleSubmit}>
-      <h3>Crear iglesia</h3>
-      <p className="muted">Crea una iglesia y serás su administrador.</p>
-      <div className="field">
-        <label htmlFor="church-name">Nombre</label>
-        <input
-          id="church-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="church-city">Ciudad (opcional)</label>
-        <input
-          id="church-city"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-      </div>
-      {error && <p className="error">{error}</p>}
-      <button className="btn" type="submit" disabled={busy}>
-        {busy ? 'Creando…' : 'Crear iglesia'}
-      </button>
-    </form>
-  )
-}
 
 const SECTIONS = [
   { to: '/servicios', icon: Church, title: 'Servicios', label: 'servicios', statKey: 'servicios' },
@@ -65,7 +15,7 @@ const SECTIONS = [
 
 export default function Dashboard() {
   const { profile } = useAuth()
-  const { loading, memberships, activeChurchId, activeChurch, refresh } = useChurch()
+  const { loading, memberships, activeChurchId, activeChurch, isAdmin, refresh } = useChurch()
 
   const [stats, setStats] = useState({ servicios: 0, canciones: 0, miembros: 0 })
   const [error, setError] = useState('')
@@ -93,7 +43,7 @@ export default function Dashboard() {
     return (
       <div className={styles.page}>
         <h1>Bienvenido</h1>
-        <CreateChurchCard onCreated={refresh} />
+        <CreateChurchForm onCreated={refresh} />
       </div>
     )
   }
@@ -123,6 +73,16 @@ export default function Dashboard() {
             </Link>
           )
         })}
+
+        {isAdmin && (
+          <Link to="/configuracion" className={`card ${styles.sectionCard}`}>
+            <span className={styles.sectionIcon} aria-hidden>
+              <Settings size={22} />
+            </span>
+            <span className={styles.sectionTitle}>Configuración</span>
+            <span className={styles.sectionLink}>Personalizar iglesia →</span>
+          </Link>
+        )}
       </div>
     </div>
   )
