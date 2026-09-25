@@ -5,10 +5,6 @@
   max-width: 860px;
 }
 
-.back {
-  align-self: flex-start;
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -85,7 +81,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -135,90 +131,22 @@
   align-items: center;
 }
 
-.picker select {
-  flex: 1;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  font-size: 0.85rem;
-}
 
-/* Crear alabanza nueva en línea */
-.newSongRow {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.newSongRow input {
-  flex: 1;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  font-size: 0.85rem;
-}
-
-.newSongRow .btn {
-  flex-shrink: 0;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.82rem;
-}
-
-/* Músicos: cada fila trae su instrumento editable */
-.musicianList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
-}
-
-.musicianRow {
+/* Título de "Músicos" con el selector de grupo a la derecha. */
+.blockHead {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface-alt);
+  margin: 1.1rem 0 0.5rem;
 }
 
-.musicianName {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.blockHead .blockTitle {
+  margin: 0;
 }
 
-.musicianRow select {
-  padding: 0.3rem 0.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  font-size: 0.82rem;
-}
-
-.musicianRemove {
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 1.05rem;
-  line-height: 1;
-  padding: 0 0.2rem;
-  flex-shrink: 0;
-}
-
-.musicianRemove:hover {
-  color: var(--color-danger);
-}
-
-@media (max-width: 560px) {
-  .musicianRow {
-    flex-wrap: wrap;
-  }
+.teamSelect {
+  flex: 0 1 230px;
+  display: flex;
 }

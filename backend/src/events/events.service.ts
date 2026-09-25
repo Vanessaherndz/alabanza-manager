@@ -231,13 +231,16 @@ export class EventsService {
   }
 
   async addAssignment(eventId: string, dto: AddAssignmentDto) {
+    // La misma persona puede repetir rol en otra sección (p. ej. voz principal
+    // en Alabanza y en Adoración), pero no dos veces en la misma sección.
     const duplicate = await this.assignments(eventId)
       .where('uid', '==', dto.uid)
       .where('role', '==', dto.role ?? null)
+      .where('section', '==', dto.section ?? null)
       .limit(1)
       .get()
     if (!duplicate.empty) {
-      throw new NotFoundException('Esa persona ya esta asignada con ese rol.')
+      throw new NotFoundException('Esa persona ya esta asignada con ese rol en esta seccion.')
     }
     const ref = this.assignments(eventId).doc()
     await ref.set({

@@ -70,3 +70,214 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+/* ---- Próximos servicios y canciones populares ---- */
+.lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.listCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.listTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+}
+
+.listTitle svg {
+  color: var(--color-primary);
+}
+
+.listItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.listItems li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.25rem;
+  color: var(--color-text);
+}
+
+a.listRow {
+  border-radius: var(--radius-sm);
+}
+
+a.listRow:hover {
+  background: var(--color-surface-alt);
+}
+
+.rank {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.rowTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowSub {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.rowMeta::first-letter {
+  text-transform: uppercase;
+}
+
+/* Próximo servicio destacado con su vista previa. */
+.next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-radius: var(--radius);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.next:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.nextLabel {
+  align-self: flex-start;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nextTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.nextDate {
+  margin-bottom: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.nextDate::first-letter {
+  text-transform: uppercase;
+}
+
+.previewRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.87rem;
+}
+
+.previewRow svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--color-primary);
+}
+
+.previewText {
+  min-width: 0;
+}
+
+.previewMore {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.nextCta {
+  margin-top: 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.listCard .sectionLink {
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .page {
+    gap: 1.25rem;
+  }
+
+  .welcome {
+    padding: 1.5rem 1rem;
+  }
+
+  .welcome h1 {
+    font-size: 1.6rem;
+  }
+
+  .welcome p {
+    font-size: 0.95rem;
+  }
+
+  .sections {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .sectionNum {
+    font-size: 1.7rem;
+  }
+
+  .lists {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}

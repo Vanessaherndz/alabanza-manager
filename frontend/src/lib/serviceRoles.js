@@ -1,4 +1,4 @@
-// Roles vocales de una sección: una Voz Principal y un Coro (2 o más).
+// Roles vocales de una sección: Voz Principal (una o varias) y Coro (2 o más).
 // Son conceptos fijos de la app (se usan para agrupar la asignación), a
 // diferencia de los instrumentos, que cada iglesia personaliza.
 export const VOICE_LEAD_ROLE = 'Voz Principal'

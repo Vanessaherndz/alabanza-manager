@@ -57,7 +57,21 @@
 .tabActive {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
+}
+
+.tabCount {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+}
+
+.tabActive .tabCount {
+  background: color-mix(in srgb, var(--color-on-primary) 22%, transparent);
+  color: var(--color-on-primary);
 }
 
 .grid {
@@ -102,13 +116,32 @@
   border-bottom: none;
 }
 
-.rowActions {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
+/* Se mantiene como celda de tabla para que sus bordes se alineen con la fila. */
+.table .rowActions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rowActions .btn + .btn {
+  margin-left: 0.4rem;
 }
 
 .rowActions .btn {
   padding: 0.35rem 0.6rem;
   font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .table {
+    min-width: 0;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.55rem 0.6rem;
+  }
+
+  .rowActions {
+    white-space: normal;
+  }
 }

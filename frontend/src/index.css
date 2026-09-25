@@ -1,34 +1,95 @@
+/* ---- Tema claro (por defecto): azul cielo con tarjetas de vidrio ---- */
 :root {
-  --color-bg: #f7f2e8;
-  --color-surface: #ffffff;
-  --color-surface-alt: #fbf5ea;
-  --color-border: #e3d7c4;
-  --color-text: #3a2a1e;
-  --color-text-muted: #8a7862;
-  /* Paleta tomada del logo (koala): degradado de azul pizarra a terracota. */
-  --color-primary: #5b7089;
-  --color-primary-hover: #495c72;
-  --color-primary-soft: #e8edf2;
-  --color-accent: #a3684f;
-  --color-sand: #e9cda3;
-  --color-danger: #b3261e;
-  --color-success: #3f7d53;
-  --color-warning: #b4791f;
-  --color-ink: #3a2a1e;
-  --gradient-brand: linear-gradient(135deg, #5b7089, #8a6863 55%, #a3684f);
+  color-scheme: light;
+
+  --color-bg: #d9e9f6;
+  --app-bg:
+    radial-gradient(1200px 700px at 0% 0%, rgba(120, 180, 230, 0.55), transparent 60%),
+    radial-gradient(1000px 650px at 100% 100%, rgba(255, 255, 255, 0.8), transparent 60%),
+    linear-gradient(135deg, #b9d8f1 0%, #dcecf8 55%, #eef5fb 100%);
+
+  /* Superficies translúcidas (vidrio) y una sólida para menús nativos. */
+  --color-surface: rgba(255, 255, 255, 0.55);
+  --color-surface-alt: rgba(255, 255, 255, 0.35);
+  --color-surface-solid: #f4f9fd;
+  --color-border: rgba(80, 125, 170, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-blur: blur(16px) saturate(140%);
+
+  --color-text: #1d3246;
+  --color-text-muted: #56708a;
+  --color-primary: #3a7ab3;
+  --color-primary-hover: #2e6597;
+  --color-primary-soft: rgba(58, 122, 179, 0.13);
+  --color-on-primary: #ffffff;
+  --color-accent: #5fa6dc;
+  --color-sand: #2e6597;
+  --color-danger: #c0392b;
+  --color-success: #2f855a;
+  --color-warning: #b7791f;
+  --color-ink: #1d3246;
+  --gradient-brand: linear-gradient(135deg, #3a7ab3, #6db3e3);
+
+  --topbar-bg: rgba(255, 255, 255, 0.5);
+  --topbar-text: #1d3246;
+  --topbar-control-bg: rgba(255, 255, 255, 0.55);
+  --topbar-control-hover: rgba(255, 255, 255, 0.85);
+  /* El logo es blanco: en tema claro se oscurece para que se vea. */
+  --logo-filter: brightness(0) invert(18%) sepia(25%) saturate(900%) hue-rotate(175deg);
 
   --radius-sm: 8px;
-  --radius: 12px;
+  --radius: 14px;
   --radius-lg: 18px;
 
-  --shadow-sm: 0 1px 2px rgba(20, 22, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(20, 22, 42, 0.08);
-  --shadow-lg: 0 16px 40px rgba(20, 22, 42, 0.14);
+  --shadow-sm: 0 2px 8px rgba(40, 90, 140, 0.08);
+  --shadow-md: 0 10px 28px rgba(40, 90, 140, 0.14);
+  --shadow-lg: 0 18px 44px rgba(40, 90, 140, 0.2);
 
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: var(--color-text);
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Tema oscuro: azul noche con el mismo vidrio ---- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #0c1522;
+  --app-bg:
+    radial-gradient(1200px 700px at 0% 0%, rgba(58, 122, 179, 0.28), transparent 60%),
+    radial-gradient(1000px 650px at 100% 100%, rgba(95, 166, 220, 0.14), transparent 60%),
+    linear-gradient(135deg, #0c1522 0%, #111e30 55%, #0d1826 100%);
+
+  --color-surface: rgba(30, 46, 68, 0.55);
+  --color-surface-alt: rgba(40, 60, 88, 0.45);
+  --color-surface-solid: #16243a;
+  --color-border: rgba(150, 185, 220, 0.16);
+  --glass-border: rgba(150, 190, 230, 0.14);
+
+  --color-text: #e2ecf6;
+  --color-text-muted: #93a9c0;
+  --color-primary: #6aaee6;
+  --color-primary-hover: #86c0ee;
+  --color-primary-soft: rgba(106, 174, 230, 0.16);
+  --color-on-primary: #0b1826;
+  --color-accent: #8cc6f0;
+  --color-sand: #8cc6f0;
+  --color-danger: #f07a6e;
+  --color-success: #62c486;
+  --color-warning: #e6ab4f;
+  --color-ink: #e2ecf6;
+  --gradient-brand: linear-gradient(135deg, #3a7ab3, #6db3e3);
+
+  --topbar-bg: rgba(12, 21, 34, 0.6);
+  --topbar-text: #e2ecf6;
+  --topbar-control-bg: rgba(255, 255, 255, 0.06);
+  --topbar-control-hover: rgba(255, 255, 255, 0.12);
+  --logo-filter: none;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -39,6 +100,16 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  background: var(--app-bg);
+  background-color: var(--color-bg);
+  background-attachment: fixed;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Menús nativos: fondo sólido para que se lean en ambos temas. */
+option {
+  background: var(--color-surface-solid);
+  color: var(--color-text);
 }
 
 a {
@@ -80,17 +151,17 @@ input, select, textarea {
   padding: 0.6rem 1.1rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, #5c8db4, var(--color-primary));
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-weight: 600;
   font-size: 0.92rem;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 4px 10px rgba(77, 126, 168, 0.28);
+  box-shadow: 0 4px 12px var(--color-primary-soft);
   transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .btn:hover {
-  background: linear-gradient(180deg, #5488b0, var(--color-primary-hover));
-  box-shadow: 0 6px 16px rgba(77, 126, 168, 0.35);
+  background: var(--color-primary-hover);
+  box-shadow: 0 6px 16px var(--color-primary-soft);
 }
 
 .btn:active {
@@ -113,7 +184,7 @@ input, select, textarea {
 
 .btn-secondary:hover {
   background: var(--color-surface-alt);
-  border-color: #d3c3aa;
+  border-color: var(--color-primary);
   box-shadow: var(--shadow-sm);
 }
 
@@ -152,7 +223,9 @@ input, select, textarea {
 /* ---- Tarjetas ---- */
 .card {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   padding: 1.35rem;
@@ -166,4 +239,29 @@ input, select, textarea {
 
 .muted {
   color: var(--color-text-muted);
+}
+
+/* ---- Móvil ---- */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  /* 16px evita el zoom automático de iOS al enfocar un campo. */
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+}
+
+/* Una lista desplegable abierta debe quedar sobre las tarjetas vecinas
+   (el desenfoque de vidrio crea un contexto de apilamiento por tarjeta). */
+.card:has([data-open='true']) {
+  position: relative;
+  z-index: 30;
 }

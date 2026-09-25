@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { CurrentUser } from '../common/decorators/current-user.decorator'
 import { RequestUser } from '../common/interfaces/authenticated-request'
 import { ChurchAccessService } from '../common/church-access.service'
 import { TeamsService } from './teams.service'
 import { CreateTeamDto } from './dto/create-team.dto'
+import { UpdateTeamDto } from './dto/update-team.dto'
 
 @Controller('churches/:churchId/teams')
 export class TeamsController {
@@ -28,6 +29,17 @@ export class TeamsController {
     return this.teams.create(churchId, dto)
   }
 
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: RequestUser,
+    @Param('churchId') churchId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateTeamDto,
+  ) {
+    await this.access.assertAdmin(user.uid, churchId)
+    return this.teams.update(churchId, id, dto)
+  }
+
   @Delete(':id')
   async remove(
     @CurrentUser() user: RequestUser,
@@ -35,7 +47,7 @@ export class TeamsController {
     @Param('id') id: string,
   ) {
     await this.access.assertAdmin(user.uid, churchId)
-    await this.teams.remove(id)
+    await this.teams.remove(churchId, id)
     return { ok: true }
   }
 }

@@ -5,6 +5,8 @@ import { api } from '../lib/apiClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
 import { buildRoleOptions } from '../lib/serviceRoles.js'
 import ServiceSummaryTable from '../components/ServiceSummaryTable.jsx'
+import BackToMenu from '../components/BackToMenu.jsx'
+import Combobox from '../components/Combobox.jsx'
 import styles from './ServiceDetail.module.css'
 
 function fechaHora(iso) {
@@ -20,6 +22,23 @@ function fechaHora(iso) {
 
 function nombreDe(profile) {
   return profile?.fullName || profile?.username || '—'
+}
+
+/** Sección del servicio: elige una existente o escribe una nueva. */
+function SectionCombobox({ sections, value, onChange }) {
+  const options = [...new Set([...sections, value].filter(Boolean))]
+  return (
+    <Combobox
+      ariaLabel="Sección"
+      placeholder="Buscar o escribir sección…"
+      value={value}
+      emptyLabel="Sin clasificar"
+      options={options.map((s) => ({ value: s, label: s }))}
+      onSelect={onChange}
+      onCreate={onChange}
+      createLabel={(texto) => `Nueva sección "${texto}"`}
+    />
+  )
 }
 
 export default function ServiceDetail() {
@@ -92,6 +111,18 @@ export default function ServiceDetail() {
     }
   }
 
+  // Crea la alabanza en el repertorio y la deja elegida para agregarla.
+  async function createSong(title) {
+    setError('')
+    try {
+      const song = await api.post('/songs', { title })
+      setRepertoire((prev) => [...prev, song].sort((a, b) => a.title.localeCompare(b.title)))
+      setNewSong((prev) => ({ ...prev, songId: song.id }))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   async function removeSong(rowId) {
     try {
       await api.delete(`/events/${id}/songs/${rowId}`)
@@ -120,7 +151,7 @@ export default function ServiceDetail() {
     } catch (err) {
       setError(
         /ya esta asignada/i.test(err.message)
-          ? 'Esa persona ya está asignada con ese rol.'
+          ? 'Esa persona ya está asignada con ese rol en esta sección.'
           : err.message,
       )
     }
@@ -147,9 +178,7 @@ export default function ServiceDetail() {
   if (notFound) {
     return (
       <div className={styles.page}>
-        <Link to="/servicios" className={`btn btn-secondary ${styles.back}`}>
-          ← Servicios
-        </Link>
+        <BackToMenu to="/servicios" label="Servicios" />
         <p className="muted">No se encontró el servicio.</p>
       </div>
     )
@@ -169,15 +198,7 @@ export default function ServiceDetail() {
 
   return (
     <div className={styles.page}>
-      <datalist id="secciones-existentes">
-        {existingSections.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-
-      <Link to="/servicios" className={`btn btn-secondary ${styles.back}`}>
-        ← Servicios
-      </Link>
+      <BackToMenu to="/servicios" label="Servicios" />
 
       <div className={styles.head}>
         <h1>{event.title}</h1>
@@ -218,31 +239,22 @@ export default function ServiceDetail() {
             <div className={styles.addGrid}>
               <div className="field">
                 <label>Alabanza</label>
-                <select
+                <Combobox
+                  ariaLabel="Alabanza"
+                  placeholder="Buscar alabanza o escribir una nueva…"
                   value={newSong.songId}
-                  onChange={(e) =>
-                    setNewSong({ ...newSong, songId: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Elegir del repertorio…</option>
-                  {disponibles.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title}
-                      {s.songKey ? ` (${s.songKey})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={disponibles.map((s) => ({ value: s.id, label: s.title, hint: s.songKey }))}
+                  onSelect={(songId) => setNewSong({ ...newSong, songId })}
+                  onCreate={createSong}
+                  createLabel={(texto) => `Crear alabanza nueva "${texto}"`}
+                />
               </div>
               <div className="field">
                 <label>Sección</label>
-                <input
+                <SectionCombobox
+                  sections={existingSections}
                   value={newSong.section}
-                  onChange={(e) =>
-                    setNewSong({ ...newSong, section: e.target.value })
-                  }
-                  placeholder="Sin clasificar"
-                  list="secciones-existentes"
+                  onChange={(section) => setNewSong({ ...newSong, section })}
                 />
               </div>
               <div className="field">
@@ -282,35 +294,28 @@ export default function ServiceDetail() {
             <div className={styles.addGrid}>
               <div className="field">
                 <label>Miembro</label>
-                <select
+                <Combobox
+                  ariaLabel="Miembro"
+                  placeholder="Buscar miembro…"
                   value={newMember.uid}
-                  onChange={(e) =>
-                    setNewMember({ ...newMember, uid: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Elegir miembro…</option>
-                  {members.map((m) => (
-                    <option key={m.uid} value={m.uid}>
-                      {nombreDe(m)}
-                    </option>
-                  ))}
-                </select>
+                  options={members.map((m) => ({ value: m.uid, label: nombreDe(m), hint: m.instrument }))}
+                  onSelect={(uid) => {
+                    // Propone su instrumento principal como rol.
+                    const m = members.find((x) => x.uid === uid)
+                    const role = roleOptions.includes(m?.instrument) ? m.instrument : newMember.role
+                    setNewMember({ ...newMember, uid, role })
+                  }}
+                />
               </div>
               <div className="field">
                 <label>Rol / instrumento</label>
-                <select
+                <Combobox
+                  ariaLabel="Rol o instrumento"
+                  placeholder="Buscar rol…"
                   value={newMember.role}
-                  onChange={(e) =>
-                    setNewMember({ ...newMember, role: e.target.value })
-                  }
-                >
-                  {roleOptions.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  options={roleOptions.map((r) => ({ value: r, label: r }))}
+                  onSelect={(role) => setNewMember({ ...newMember, role })}
+                />
               </div>
               {newMember.role === 'Otro' && (
                 <div className="field">
@@ -326,13 +331,10 @@ export default function ServiceDetail() {
               )}
               <div className="field">
                 <label>Sección (opcional)</label>
-                <input
+                <SectionCombobox
+                  sections={existingSections}
                   value={newMember.section}
-                  onChange={(e) =>
-                    setNewMember({ ...newMember, section: e.target.value })
-                  }
-                  placeholder="Sin clasificar"
-                  list="secciones-existentes"
+                  onChange={(section) => setNewMember({ ...newMember, section })}
                 />
               </div>
             </div>

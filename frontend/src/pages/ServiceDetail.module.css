@@ -5,10 +5,6 @@
   max-width: 1080px;
 }
 
-.back {
-  align-self: flex-start;
-}
-
 .head h1 {
   margin: 0.25rem 0 0.25rem;
 }

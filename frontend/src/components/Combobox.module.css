@@ -1,0 +1,125 @@
+.combo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.combo .input {
+  width: 100%;
+  padding: 0.6rem 2rem 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.combo .input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.combo .input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  outline: none;
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+.combo[data-open='true'] .chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 260px;
+  margin: 0;
+  padding: 0.3rem;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--color-primary-soft);
+}
+
+.option[aria-selected='true'] {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.create {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.empty {
+  padding: 0.5rem 0.6rem;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+/* Variante compacta (p. ej. el instrumento de cada músico). */
+.sm .input {
+  padding: 0.35rem 1.7rem 0.35rem 0.55rem;
+  font-size: 0.84rem;
+}
+
+.sm .chevron {
+  right: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  /* 16px evita el zoom automático de iOS al enfocar el campo. */
+  .combo .input,
+  .sm .input {
+    font-size: 16px;
+  }
+}
+
+/* Dentro de un campo de formulario (columna flex) no debe estirarse en alto. */
+:global(.field) > .combo {
+  flex: none;
+}

@@ -11,6 +11,19 @@
       rel="stylesheet"
     />
     <title>Alabanza Manager</title>
+    <script>
+      // Aplica el tema guardado (o el del sistema) antes de pintar la página.
+      (function () {
+        var theme
+        try {
+          theme = localStorage.getItem('alabanza-theme')
+        } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

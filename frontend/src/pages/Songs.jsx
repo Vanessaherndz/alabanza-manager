@@ -7,6 +7,10 @@ import styles from './Songs.module.css'
 
 const EMPTY = { title: '', songKey: '', referenceUrl: '', category: '' }
 
+// Pestañas especiales además de las categorías configuradas.
+const ALL_TAB = '__todas'
+const NO_CATEGORY_TAB = '__sin_categoria'
+
 export default function Songs() {
   const { activeChurchId, isAdmin } = useChurch()
   const [songCategories, setSongCategories] = useState([])
@@ -17,7 +21,7 @@ export default function Songs() {
   const [editingId, setEditingId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState('')
+  const [tab, setTab] = useState(ALL_TAB)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -40,10 +44,6 @@ export default function Songs() {
       .then((data) => setSongCategories(data ?? []))
       .catch((err) => setError(err.message))
   }, [])
-
-  useEffect(() => {
-    if (!tab && songCategories.length > 0) setTab(songCategories[0])
-  }, [songCategories, tab])
 
   function resetForm() {
     setForm(EMPTY)
@@ -103,8 +103,26 @@ export default function Songs() {
     )
   }
 
+  // Canciones sin categoría o con una que ya no está en la lista: se
+  // agrupan en "Sin categoría" para que ninguna quede oculta.
+  const isUncategorized = (s) => !s.category || !songCategories.includes(s.category)
+  const countFor = (t) =>
+    t === ALL_TAB
+      ? songs.length
+      : t === NO_CATEGORY_TAB
+        ? songs.filter(isUncategorized).length
+        : songs.filter((s) => s.category === t).length
+  const tabs = [
+    { value: ALL_TAB, label: 'Todas' },
+    ...songCategories.map((c) => ({ value: c, label: c })),
+    ...(countFor(NO_CATEGORY_TAB) > 0 ? [{ value: NO_CATEGORY_TAB, label: 'Sin categoría' }] : []),
+  ]
+  const tabLabel = tabs.find((t) => t.value === tab)?.label ?? tab
+
   const filtered = songs
-    .filter((s) => (s.category || '') === tab)
+    .filter((s) =>
+      tab === ALL_TAB ? true : tab === NO_CATEGORY_TAB ? isUncategorized(s) : s.category === tab,
+    )
     .filter((s) => s.title.toLowerCase().includes(search.toLowerCase()))
 
   return (
@@ -125,14 +143,15 @@ export default function Songs() {
           </div>
 
           <div className={styles.tabs}>
-            {songCategories.map((c, i) => (
+            {tabs.map((t) => (
               <button
-                key={c}
+                key={t.value}
                 type="button"
-                className={`${styles.tab} ${tab === c ? styles.tabActive : ''}`}
-                onClick={() => setTab(c)}
+                className={`${styles.tab} ${tab === t.value ? styles.tabActive : ''}`}
+                onClick={() => setTab(t.value)}
               >
-                {i + 1}. {c}
+                {t.label}
+                <span className={styles.tabCount}>{countFor(t.value)}</span>
               </button>
             ))}
           </div>
@@ -140,7 +159,7 @@ export default function Songs() {
           {loading ? (
             <p>Cargando…</p>
           ) : filtered.length === 0 ? (
-            <p className="muted">No hay alabanzas en "{tab}".</p>
+            <p className="muted">{search ? 'No hay alabanzas que coincidan con la búsqueda.' : `No hay alabanzas en "${tabLabel}".`}</p>
           ) : (
             <div className={styles.tableWrap}>
               <table className={styles.table}>

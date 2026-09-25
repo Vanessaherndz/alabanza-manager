@@ -52,6 +52,36 @@
   white-space: nowrap;
 }
 
+/* Voz principal: destacada del coro y los músicos. */
+.leadItem {
+  margin: 0.1rem 0 0.25rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+}
+
+.leadIcon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.leadName {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.leadTag {
+  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 .miniRemove {
   border: none;
   background: transparent;
@@ -91,4 +121,68 @@
 
 .stReject {
   background: var(--color-danger);
+}
+
+/* Móvil: cada sección se muestra como tarjeta con sus columnas apiladas. */
+@media (max-width: 640px) {
+  .summaryTable {
+    min-width: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .summaryTable thead {
+    display: none;
+  }
+
+  .summaryTable tbody,
+  .summaryTable tr,
+  .summaryTable td {
+    display: block;
+  }
+
+  .summaryTable tr {
+    margin-bottom: 0.9rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .summaryTable tr:last-child td {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .summaryTable tr td:last-child {
+    border-bottom: none;
+  }
+
+  .sectionCell {
+    background: var(--color-surface-alt);
+    white-space: normal;
+  }
+
+  .summaryTable td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+}
+
+/* Pantallas táctiles: área de toque más grande para los botones pequeños. */
+@media (pointer: coarse) {
+  .miniRemove {
+    padding: 0.35rem 0.5rem;
+    font-size: 1.2rem;
+  }
+
+  .statusDot {
+    width: 14px;
+    height: 14px;
+  }
 }

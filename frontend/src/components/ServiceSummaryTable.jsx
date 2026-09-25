@@ -1,3 +1,4 @@
+import { Mic } from 'lucide-react'
 import { VOICE_LEAD_ROLE, CHOIR_ROLE } from '../lib/serviceRoles.js'
 import { groupBySection } from '../lib/groupBySection.js'
 import styles from './ServiceSummaryTable.module.css'
@@ -25,10 +26,10 @@ function ordenRol(role) {
 }
 
 /** Nombre + estado (punto) + rol + quitar, para una celda de la hoja. */
-function TeamChip({ a, tag, isAdmin, onRemove, onCycleStatus }) {
+function TeamChip({ a, tag, isAdmin, onRemove, onCycleStatus, lead = false }) {
   const meta = STATUS_META[a.status] ?? { label: a.status, cls: '' }
   return (
-    <div className={styles.cellItem}>
+    <div className={`${styles.cellItem} ${lead ? styles.leadItem : ''}`}>
       <button
         type="button"
         className={`${styles.statusDot} ${styles[meta.cls] ?? ''}`}
@@ -37,8 +38,9 @@ function TeamChip({ a, tag, isAdmin, onRemove, onCycleStatus }) {
         disabled={!isAdmin}
         onClick={() => onCycleStatus(a.id, nextStatus(a.status))}
       />
-      <span>{nombreDe(a.profile)}</span>
-      <span className={styles.cellTag}>{tag}</span>
+      {lead && <Mic size={14} className={styles.leadIcon} aria-hidden />}
+      <span className={lead ? styles.leadName : undefined}>{nombreDe(a.profile)}</span>
+      <span className={lead ? styles.leadTag : styles.cellTag}>{tag}</span>
       {isAdmin && (
         <button className={styles.miniRemove} onClick={() => onRemove(a.id)} aria-label="Quitar">
           ×
@@ -75,7 +77,7 @@ export default function ServiceSummaryTable({
     return {
       name,
       songs: sectionSongs,
-      vocalLead: sectionTeam.find((a) => a.role === VOICE_LEAD_ROLE) ?? null,
+      vocalLeads: sectionTeam.filter((a) => a.role === VOICE_LEAD_ROLE),
       choir: sectionTeam.filter((a) => a.role === CHOIR_ROLE),
       musicians: sectionTeam.filter((a) => a.role !== VOICE_LEAD_ROLE && a.role !== CHOIR_ROLE),
     }
@@ -100,17 +102,19 @@ export default function ServiceSummaryTable({
           {sectionRows.map((row) => (
             <tr key={row.name}>
               <td className={styles.sectionCell}>{row.name}</td>
-              <td>
-                {!row.vocalLead && row.choir.length === 0 && <span className="muted">—</span>}
-                {row.vocalLead && (
+              <td data-label="Voz">
+                {row.vocalLeads.length === 0 && row.choir.length === 0 && <span className="muted">—</span>}
+                {row.vocalLeads.map((a) => (
                   <TeamChip
-                    a={row.vocalLead}
+                    key={a.id}
+                    a={a}
                     tag="Voz principal"
+                    lead
                     isAdmin={isAdmin}
                     onRemove={onRemoveMember}
                     onCycleStatus={onCycleStatus}
                   />
-                )}
+                ))}
                 {row.choir.map((a) => (
                   <TeamChip
                     key={a.id}
@@ -122,7 +126,7 @@ export default function ServiceSummaryTable({
                   />
                 ))}
               </td>
-              <td>
+              <td data-label="Alabanzas">
                 {row.songs.length === 0 && <span className="muted">—</span>}
                 {row.songs.map((es) => (
                   <div className={styles.cellItem} key={es.id}>
@@ -140,7 +144,7 @@ export default function ServiceSummaryTable({
                   </div>
                 ))}
               </td>
-              <td>
+              <td data-label="Músicos">
                 {row.musicians.length === 0 && <span className="muted">—</span>}
                 {row.musicians.map((a) => (
                   <TeamChip

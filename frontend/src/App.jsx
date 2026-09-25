@@ -7,7 +7,6 @@ import Dashboard from './pages/Dashboard.jsx'
 import Services from './pages/Services.jsx'
 import ServiceForm from './pages/ServiceForm.jsx'
 import ServiceDetail from './pages/ServiceDetail.jsx'
-import Teams from './pages/Teams.jsx'
 import Songs from './pages/Songs.jsx'
 import Members from './pages/Members.jsx'
 import NewChurch from './pages/NewChurch.jsx'
@@ -39,7 +38,7 @@ export default function App() {
         <Route path="servicios" element={<Services />} />
         <Route path="servicios/nuevo" element={<ServiceForm />} />
         <Route path="servicios/:id" element={<ServiceDetail />} />
-        <Route path="equipos" element={<Teams />} />
+        <Route path="equipos" element={<Navigate to="/miembros" replace />} />
         <Route path="canciones" element={<Songs />} />
         <Route
           path="miembros"

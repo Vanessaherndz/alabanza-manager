@@ -4,13 +4,16 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useChurch } from '../context/ChurchContext.jsx'
 import { buildInstrumentOptions } from '../lib/serviceRoles.js'
 import BackToMenu from '../components/BackToMenu.jsx'
+import Combobox from '../components/Combobox.jsx'
+import TeamsManager from '../components/TeamsManager.jsx'
 import styles from './Songs.module.css'
+import layout from './Members.module.css'
 
 const EMPTY_NEW = { fullName: '', instrument: '' }
 
 export default function Members() {
   const { user } = useAuth()
-  const { activeChurchId, activeChurch } = useChurch()
+  const { activeChurchId, activeChurch, isAdmin } = useChurch()
   const instruments = buildInstrumentOptions(activeChurch?.settings?.instruments)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -97,17 +100,14 @@ export default function Members() {
           </div>
           <div className="field">
             <label>Instrumento principal (opcional)</label>
-            <select
+            <Combobox
+              ariaLabel="Instrumento principal"
+              placeholder="Buscar instrumento…"
               value={nuevo.instrument}
-              onChange={(e) => setNuevo({ ...nuevo, instrument: e.target.value })}
-            >
-              <option value="">Ninguno / voz</option>
-              {instruments.map((i) => (
-                <option key={i} value={i}>
-                  {i}
-                </option>
-              ))}
-            </select>
+              emptyLabel="Ninguno / voz"
+              options={instruments.map((i) => ({ value: i, label: i }))}
+              onSelect={(instrument) => setNuevo({ ...nuevo, instrument })}
+            />
           </div>
         </div>
         <button className="btn" type="submit" disabled={creando}>
@@ -121,34 +121,48 @@ export default function Members() {
       {loading ? (
         <p>Cargando…</p>
       ) : (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Instrumento</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => (
-                <tr key={m.uid}>
-                  <td>{m.fullName || m.username || '—'}</td>
-                  <td>{m.instrument || '—'}</td>
-                  <td className={styles.rowActions}>
-                    {m.uid !== user.uid && (
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => removeMember(m.uid)}
-                      >
-                        Quitar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={layout.columns}>
+          <TeamsManager
+            churchId={activeChurchId}
+            members={members}
+            instruments={instruments}
+            isAdmin={isAdmin}
+          />
+
+          <section className={layout.membersCol}>
+            <h2 className={layout.colTitle}>
+              Lista de miembros <span className={layout.colCount}>{members.length}</span>
+            </h2>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Instrumento</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr key={m.uid}>
+                      <td>{m.fullName || m.username || '—'}</td>
+                      <td>{m.instrument || '—'}</td>
+                      <td className={styles.rowActions}>
+                        {m.uid !== user.uid && (
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => removeMember(m.uid)}
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       )}
     </div>

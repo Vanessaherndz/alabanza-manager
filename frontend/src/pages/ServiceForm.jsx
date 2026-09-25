@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/apiClient.js'
 import { useChurch } from '../context/ChurchContext.jsx'
 import { buildInstrumentOptions, VOICE_LEAD_ROLE, CHOIR_ROLE } from '../lib/serviceRoles.js'
+import BackToMenu from '../components/BackToMenu.jsx'
+import Combobox from '../components/Combobox.jsx'
+import MusicianPicker from '../components/MusicianPicker.jsx'
 import styles from './ServiceForm.module.css'
 
 function nombreDe(p) {
@@ -22,31 +25,23 @@ function nuevaSeccion() {
     name: '',
     tono: '',
     songIds: [],
-    vocalLead: '',
+    vocalLeads: [],
     choir: [],
     musicians: [], // [{ uid, instrument }]
   }
 }
 
-/** Selector de personas con "chips" (permite varias). */
+/** Selector de personas con búsqueda y "chips" (permite varias). */
 function MemberPicker({ members, selected, onChange, placeholder }) {
   const disponibles = members.filter((m) => !selected.includes(m.uid))
   return (
     <div>
       <div className={styles.picker}>
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) onChange([...selected, e.target.value])
-          }}
-        >
-          <option value="">{placeholder}</option>
-          {disponibles.map((m) => (
-            <option key={m.uid} value={m.uid}>
-              {nombreDe(m)}
-            </option>
-          ))}
-        </select>
+        <Combobox
+          placeholder={placeholder}
+          options={disponibles.map((m) => ({ value: m.uid, label: nombreDe(m), hint: m.instrument }))}
+          onSelect={(uid) => onChange([...selected, uid])}
+        />
       </div>
       {selected.length > 0 && (
         <div className={styles.chips}>
@@ -58,7 +53,7 @@ function MemberPicker({ members, selected, onChange, placeholder }) {
                 <button
                   type="button"
                   onClick={() => onChange(selected.filter((x) => x !== uid))}
-                  aria-label="Quitar"
+                  aria-label={`Quitar a ${nombreDe(m)}`}
                 >
                   ×
                 </button>
@@ -71,125 +66,31 @@ function MemberPicker({ members, selected, onChange, placeholder }) {
   )
 }
 
-/** Selector de músicos: cada persona agregada trae un instrumento editable. */
-function MusicianPicker({ members, selected, onChange, instruments }) {
-  const disponibles = members.filter((m) => !selected.some((s) => s.uid === m.uid))
-  return (
-    <div>
-      <div className={styles.picker}>
-        <select
-          value=""
-          onChange={(e) => {
-            const m = members.find((x) => x.uid === e.target.value)
-            if (!m) return
-            onChange([...selected, { uid: m.uid, instrument: m.instrument || instruments[0] }])
-          }}
-        >
-          <option value="">Agregar músico…</option>
-          {disponibles.map((m) => (
-            <option key={m.uid} value={m.uid}>
-              {nombreDe(m)}
-              {m.instrument ? ` (${m.instrument})` : ''}
-            </option>
-          ))}
-        </select>
-      </div>
-      {selected.length > 0 && (
-        <div className={styles.musicianList}>
-          {selected.map((row) => {
-            const m = members.find((x) => x.uid === row.uid)
-            return (
-              <div className={styles.musicianRow} key={row.uid}>
-                <span className={styles.musicianName}>{nombreDe(m)}</span>
-                <select
-                  value={row.instrument}
-                  onChange={(e) =>
-                    onChange(
-                      selected.map((s) =>
-                        s.uid === row.uid ? { ...s, instrument: e.target.value } : s,
-                      ),
-                    )
-                  }
-                >
-                  {instruments.map((i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.musicianRemove}
-                  onClick={() => onChange(selected.filter((s) => s.uid !== row.uid))}
-                  aria-label="Quitar"
-                >
-                  ×
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Selector de canciones con "chips", con opción de crear una nueva. */
+/**
+ * Selector de canciones con búsqueda y "chips". Si el título escrito no está
+ * en el repertorio, ofrece crear la alabanza nueva ahí mismo.
+ */
 function SongPicker({ repertoire, taken, selected, onChange, onCreate }) {
-  const [nuevo, setNuevo] = useState('')
   const [creando, setCreando] = useState(false)
-  const disponibles = repertoire.filter(
-    (s) => !taken.includes(s.id) || selected.includes(s.id),
-  )
+  const disponibles = repertoire.filter((s) => !taken.includes(s.id) && !selected.includes(s.id))
 
-  async function handleCreate() {
-    if (!nuevo.trim()) return
+  async function handleCreate(title) {
     setCreando(true)
-    await onCreate(nuevo.trim())
-    setNuevo('')
+    await onCreate(title)
     setCreando(false)
   }
 
   return (
     <div>
       <div className={styles.picker}>
-        <select
-          value=""
-          onChange={(e) => {
-            if (e.target.value) onChange([...selected, e.target.value])
-          }}
-        >
-          <option value="">Elegir del repertorio…</option>
-          {disponibles
-            .filter((s) => !selected.includes(s.id))
-            .map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.title}
-                {s.songKey ? ` (${s.songKey})` : ''}
-              </option>
-            ))}
-        </select>
-      </div>
-      <div className={styles.newSongRow}>
-        <input
-          value={nuevo}
-          onChange={(e) => setNuevo(e.target.value)}
-          placeholder="…o escribe el título de una alabanza nueva"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleCreate()
-            }
-          }}
+        <Combobox
+          placeholder={creando ? 'Agregando alabanza…' : 'Buscar alabanza o escribir una nueva…'}
+          disabled={creando}
+          options={disponibles.map((s) => ({ value: s.id, label: s.title, hint: s.songKey }))}
+          onSelect={(id) => onChange([...selected, id])}
+          onCreate={handleCreate}
+          createLabel={(texto) => `Crear alabanza nueva "${texto}"`}
         />
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleCreate}
-          disabled={!nuevo.trim() || creando}
-        >
-          {creando ? 'Agregando…' : '+ Agregar'}
-        </button>
       </div>
       {selected.length > 0 && (
         <div className={styles.chips}>
@@ -201,7 +102,7 @@ function SongPicker({ repertoire, taken, selected, onChange, onCreate }) {
                 <button
                   type="button"
                   onClick={() => onChange(selected.filter((x) => x !== id))}
-                  aria-label="Quitar"
+                  aria-label={`Quitar ${s?.title ?? 'alabanza'}`}
                 >
                   ×
                 </button>
@@ -236,6 +137,7 @@ export default function ServiceForm() {
 
   const [repertoire, setRepertoire] = useState([])
   const [members, setMembers] = useState([])
+  const [teams, setTeams] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -248,6 +150,10 @@ export default function ServiceForm() {
     api
       .get(`/churches/${activeChurchId}/members`)
       .then((data) => setMembers(data ?? []))
+      .catch((err) => setError(err.message))
+    api
+      .get(`/churches/${activeChurchId}/teams`)
+      .then((data) => setTeams(data ?? []))
       .catch((err) => setError(err.message))
   }, [activeChurchId])
 
@@ -264,6 +170,29 @@ export default function ServiceForm() {
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  // Agrega los integrantes del grupo a los músicos de la sección (sin repetir
+  // a quien ya esté). Luego se pueden quitar o agregar uno por uno.
+  function applyTeam(sectionKey, teamId) {
+    const team = teams.find((t) => t.id === teamId)
+    if (!team) return
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.key !== sectionKey) return s
+        const nuevos = team.members
+          .filter((tm) => members.some((m) => m.uid === tm.uid))
+          .filter((tm) => !s.musicians.some((x) => x.uid === tm.uid))
+          .map((tm) => ({
+            uid: tm.uid,
+            instrument:
+              tm.instrument ||
+              members.find((m) => m.uid === tm.uid)?.instrument ||
+              instruments[0],
+          }))
+        return { ...s, musicians: [...s.musicians, ...nuevos] }
+      }),
+    )
   }
 
   const takenSongs = useMemo(
@@ -301,8 +230,8 @@ export default function ServiceForm() {
       for (const songId of s.songIds) {
         songs.push({ songId, section: s.name.trim(), songKey: s.tono.trim() || undefined })
       }
-      if (s.vocalLead) {
-        assignments.push({ uid: s.vocalLead, role: VOICE_LEAD_ROLE, section: s.name.trim() })
+      for (const uid of s.vocalLeads) {
+        assignments.push({ uid, role: VOICE_LEAD_ROLE, section: s.name.trim() })
       }
       for (const uid of s.choir) {
         assignments.push({ uid, role: CHOIR_ROLE, section: s.name.trim() })
@@ -328,9 +257,7 @@ export default function ServiceForm() {
 
   return (
     <form className={styles.page} onSubmit={handleSubmit}>
-      <Link to="/servicios" className={`btn btn-secondary ${styles.back}`}>
-        ← Servicios
-      </Link>
+      <BackToMenu to="/servicios" label="Servicios" />
       <h1>Nuevo servicio</h1>
 
       {/* Datos */}
@@ -409,35 +336,41 @@ export default function ServiceForm() {
           <p className={styles.blockTitle} style={{ marginTop: '1.1rem' }}>
             Voz principal
           </p>
-          <div className={styles.picker}>
-            <select
-              value={s.vocalLead}
-              onChange={(e) => updateSection(s.key, { vocalLead: e.target.value })}
-            >
-              <option value="">— Ninguno —</option>
-              {members
-                .filter((m) => !s.choir.includes(m.uid))
-                .map((m) => (
-                  <option key={m.uid} value={m.uid}>
-                    {nombreDe(m)}
-                  </option>
-                ))}
-            </select>
-          </div>
+          <MemberPicker
+            members={members.filter((m) => !s.choir.includes(m.uid))}
+            selected={s.vocalLeads}
+            onChange={(next) => updateSection(s.key, { vocalLeads: next })}
+            placeholder="Agregar voz principal…"
+          />
 
           <p className={styles.blockTitle} style={{ marginTop: '1.1rem' }}>
             Coro (2 o más)
           </p>
           <MemberPicker
-            members={members.filter((m) => m.uid !== s.vocalLead)}
+            members={members.filter((m) => !s.vocalLeads.includes(m.uid))}
             selected={s.choir}
             onChange={(next) => updateSection(s.key, { choir: next })}
             placeholder="Agregar al coro…"
           />
 
-          <p className={styles.blockTitle} style={{ marginTop: '1.1rem' }}>
-            Músicos
-          </p>
+          <div className={styles.blockHead}>
+            <p className={styles.blockTitle}>Músicos</p>
+            {teams.length > 0 && (
+              <div className={styles.teamSelect}>
+                <Combobox
+                  size="sm"
+                  placeholder="Usar grupo…"
+                  ariaLabel="Usar un grupo de músicos"
+                  options={teams.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                    hint: `${t.members.length} ${t.members.length === 1 ? 'músico' : 'músicos'}`,
+                  }))}
+                  onSelect={(teamId) => applyTeam(s.key, teamId)}
+                />
+              </div>
+            )}
+          </div>
           <MusicianPicker
             members={members}
             selected={s.musicians}
