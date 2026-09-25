@@ -26,6 +26,14 @@
       ]
     },
     {
+      "collectionGroup": "songs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "churchId", "order": "ASCENDING" },
+        { "fieldPath": "title", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "teams",
       "queryScope": "COLLECTION",
       "fields": [
