@@ -97,9 +97,12 @@ export class ChurchAccessService {
     }
   }
 
-  async listChurchIdsForUser(uid: string): Promise<string[]> {
+  async listMembershipsForUser(uid: string): Promise<{ churchId: string; role: ChurchRole }[]> {
     const snap = await this.db.collection('memberships').where('uid', '==', uid).get()
-    return snap.docs.map((d) => d.data().churchId as string)
+    return snap.docs.map((d) => ({
+      churchId: d.data().churchId as string,
+      role: (d.data().role as ChurchRole) ?? 'user',
+    }))
   }
 
   async listMembers(churchId: string): Promise<{ uid: string; role: ChurchRole }[]> {

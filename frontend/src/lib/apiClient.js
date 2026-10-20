@@ -36,6 +36,13 @@ async function request(path, { method = 'GET', body } = {}) {
   return data
 }
 
+// El backend en Render (plan gratis) se apaga tras ~15 min sin uso y tarda
+// ~30s en arrancar. Lo despertamos apenas se abre la app, para que ya este
+// listo cuando el usuario termine de iniciar sesion.
+export function wakeUpServer() {
+  fetch(`${API_URL}/health`).catch(() => {})
+}
+
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body }),

@@ -11,6 +11,7 @@ import { TeamsModule } from './teams/teams.module'
 import { SongsModule } from './songs/songs.module'
 import { EventsModule } from './events/events.module'
 import { DashboardModule } from './dashboard/dashboard.module'
+import { HealthModule } from './health/health.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DashboardModule } from './dashboard/dashboard.module'
     SongsModule,
     EventsModule,
     DashboardModule,
+    HealthModule,
   ],
   providers: [
     {

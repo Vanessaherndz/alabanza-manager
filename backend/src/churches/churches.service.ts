@@ -69,16 +69,12 @@ export class ChurchesService {
       }))
     }
 
-    const churchIds = await this.access.listChurchIdsForUser(uid)
-    if (churchIds.length === 0) return []
+    const memberships = await this.access.listMembershipsForUser(uid)
+    if (memberships.length === 0) return []
 
-    const refs = churchIds.map((id) => this.collection().doc(id))
+    const refs = memberships.map((m) => this.collection().doc(m.churchId))
     const snaps = await this.db.getAll(...refs)
-    const roles = new Map(
-      (await Promise.all(churchIds.map((id) => this.access.getRole(uid, id)))).map(
-        (role, i) => [churchIds[i], role],
-      ),
-    )
+    const roles = new Map(memberships.map((m) => [m.churchId, m.role]))
 
     return snaps
       .filter((s) => s.exists)
@@ -86,7 +82,7 @@ export class ChurchesService {
         id: s.id,
         name: s.data()!.name,
         city: s.data()!.city ?? null,
-        role: (roles.get(s.id) ?? 'user') as 'admin' | 'user',
+        role: roles.get(s.id) ?? 'user',
         settings: toSettings(s.data()),
       }))
       .sort((a, b) => a.name.localeCompare(b.name))

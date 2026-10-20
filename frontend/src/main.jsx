@@ -4,7 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { ChurchProvider } from './context/ChurchContext.jsx'
+import { wakeUpServer } from './lib/apiClient.js'
 import './index.css'
+
+wakeUpServer()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
