@@ -20,6 +20,9 @@ function normalizar(texto) {
  *
  * `options`: [{ value, label, hint? }]. Con `onCreate`, si el texto no coincide
  * exactamente con ninguna opción, se ofrece crearla.
+ *
+ * Con `openOnFocus={false}` la lista solo se despliega al escribir (o con ↓),
+ * no al enfocar o hacer clic en el campo.
  */
 export default function Combobox({
   options,
@@ -32,6 +35,7 @@ export default function Combobox({
   size,
   ariaLabel,
   disabled = false,
+  openOnFocus = true,
 }) {
   const selectMode = value !== undefined
   const selected = selectMode ? options.find((o) => o.value === value) : null
@@ -91,9 +95,11 @@ export default function Combobox({
       close()
       inputRef.current?.blur()
     } else {
-      // Queda listo para agregar otra opción.
+      // Queda listo para agregar otra opción, con la lista cerrada para que
+      // no tape lo que se acaba de agregar.
       setQuery('')
       setTyping(false)
+      setOpen(false)
     }
   }
 
@@ -137,13 +143,15 @@ export default function Combobox({
         onChange={(e) => {
           setQuery(e.target.value)
           setTyping(true)
-          setOpen(true)
+          setOpen(openOnFocus || e.target.value.trim() !== '')
         }}
         onFocus={(e) => {
-          setOpen(true)
+          if (openOnFocus) setOpen(true)
           if (selectMode) e.target.select()
         }}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (openOnFocus) setOpen(true)
+        }}
         onBlur={close}
         onKeyDown={handleKeyDown}
       />

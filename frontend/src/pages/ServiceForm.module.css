@@ -30,6 +30,13 @@
   margin-bottom: 1rem;
 }
 
+.sectionSelect {
+  display: flex;
+  flex: 1;
+  min-width: 160px;
+  max-width: 240px;
+}
+
 .sectionName {
   flex: 1;
   min-width: 160px;

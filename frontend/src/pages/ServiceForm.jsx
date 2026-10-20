@@ -19,10 +19,21 @@ function fechaInputALocal(dateStr) {
   return new Date(y, m - 1, d, 12, 0, 0)
 }
 
+// Nombres de sección más usados; "Otro" permite escribir uno a mano.
+const SECTION_PRESETS = ['Adoración', 'Júbilo']
+const OTRA_SECCION = '__otra__'
+
+// Solo quienes tienen como categoría (instrumento principal) un rol vocal
+// pueden ir en Voz principal o Coro.
+function esVoz(m) {
+  return m.instrument === VOICE_LEAD_ROLE || m.instrument === CHOIR_ROLE
+}
+
 function nuevaSeccion() {
   return {
     key: crypto.randomUUID(),
     name: '',
+    customName: false, // true cuando se eligió "Otro" y se escribe a mano
     tono: '',
     songIds: [],
     vocalLeads: [],
@@ -86,6 +97,7 @@ function SongPicker({ repertoire, taken, selected, onChange, onCreate }) {
         <Combobox
           placeholder={creando ? 'Agregando alabanza…' : 'Buscar alabanza o escribir una nueva…'}
           disabled={creando}
+          openOnFocus={false}
           options={disponibles.map((s) => ({ value: s.id, label: s.title, hint: s.songKey }))}
           onSelect={(id) => onChange([...selected, id])}
           onCreate={handleCreate}
@@ -195,6 +207,8 @@ export default function ServiceForm() {
     )
   }
 
+  const singers = useMemo(() => members.filter(esVoz), [members])
+
   const takenSongs = useMemo(
     () => sections.flatMap((s) => s.songIds),
     [sections],
@@ -218,7 +232,7 @@ export default function ServiceForm() {
     setError('')
 
     if (sections.some((s) => !s.name.trim())) {
-      setError('Ponle un nombre a cada sección.')
+      setError('Elige o escribe el nombre de cada sección.')
       return
     }
 
@@ -293,18 +307,48 @@ export default function ServiceForm() {
         </section>
       )}
 
-      {/* Secciones del servicio, con nombre libre */}
+      {members.length > 0 && singers.length === 0 && (
+        <section className="card">
+          <p className="muted">
+            Ningún miembro tiene como instrumento “{VOICE_LEAD_ROLE}” o “{CHOIR_ROLE}”, así que no
+            hay a quién poner en voz principal o coro.{' '}
+            <Link to="/miembros">Editar miembros</Link>
+          </p>
+        </section>
+      )}
+
+      {/* Secciones del servicio */}
       {sections.map((s, idx) => (
         <section className={`card ${styles.momento}`} key={s.key}>
           <div className={styles.momentoHead}>
             <span className={styles.momentoNum}>{idx + 1}</span>
-            <input
-              className={styles.sectionName}
-              value={s.name}
-              onChange={(e) => updateSection(s.key, { name: e.target.value })}
-              placeholder="Nombre de la sección (ej: Adoración)"
-              required
-            />
+            <div className={styles.sectionSelect}>
+              <Combobox
+                ariaLabel="Sección"
+                placeholder="Elegir sección…"
+                value={s.customName ? OTRA_SECCION : s.name}
+                options={[
+                  ...SECTION_PRESETS.map((p) => ({ value: p, label: p })),
+                  { value: OTRA_SECCION, label: 'Otro (escribir)' },
+                ]}
+                onSelect={(v) =>
+                  updateSection(
+                    s.key,
+                    v === OTRA_SECCION ? { customName: true, name: '' } : { customName: false, name: v },
+                  )
+                }
+              />
+            </div>
+            {s.customName && (
+              <input
+                className={styles.sectionName}
+                value={s.name}
+                onChange={(e) => updateSection(s.key, { name: e.target.value })}
+                placeholder="Nombre de la sección"
+                autoFocus
+                required
+              />
+            )}
             <label className={styles.tono}>
               Tono
               <input
@@ -337,7 +381,7 @@ export default function ServiceForm() {
             Voz principal
           </p>
           <MemberPicker
-            members={members.filter((m) => !s.choir.includes(m.uid))}
+            members={singers.filter((m) => !s.choir.includes(m.uid))}
             selected={s.vocalLeads}
             onChange={(next) => updateSection(s.key, { vocalLeads: next })}
             placeholder="Agregar voz principal…"
@@ -347,7 +391,7 @@ export default function ServiceForm() {
             Coro (2 o más)
           </p>
           <MemberPicker
-            members={members.filter((m) => !s.vocalLeads.includes(m.uid))}
+            members={singers.filter((m) => !s.vocalLeads.includes(m.uid))}
             selected={s.choir}
             onChange={(next) => updateSection(s.key, { choir: next })}
             placeholder="Agregar al coro…"
@@ -376,6 +420,7 @@ export default function ServiceForm() {
             selected={s.musicians}
             onChange={(next) => updateSection(s.key, { musicians: next })}
             instruments={instruments}
+            openOnFocus={false}
           />
         </section>
       ))}

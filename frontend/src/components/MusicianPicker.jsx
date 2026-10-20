@@ -6,13 +6,20 @@ function nombreDe(p) {
 }
 
 /** Selector de músicos: cada persona agregada trae un instrumento editable. */
-export default function MusicianPicker({ members, selected, onChange, instruments }) {
+export default function MusicianPicker({
+  members,
+  selected,
+  onChange,
+  instruments,
+  openOnFocus = true,
+}) {
   const disponibles = members.filter((m) => !selected.some((s) => s.uid === m.uid))
   return (
     <div>
       <div className={styles.picker}>
         <Combobox
           placeholder="Buscar músico para agregar…"
+          openOnFocus={openOnFocus}
           options={disponibles.map((m) => ({ value: m.uid, label: nombreDe(m), hint: m.instrument }))}
           onSelect={(uid) => {
             const m = members.find((x) => x.uid === uid)
